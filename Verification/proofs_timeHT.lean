@@ -533,6 +533,10 @@ theorem INV7 {κ : Type T} {n : ℕ} :
 /-
 !SUBT# : Theorems regarding the substraction function
 SUBT0 : Every timeline minus itself is equal to the empty set
+SUBT1 :
+SUBT2 :
+SUBT3 :
+SUBT4 :
 -/
 theorem SUBT0 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
@@ -639,6 +643,16 @@ theorem SUBT2 {κ : Type T} {n : ℕ} :
     exact ⟨x, y, sthm1⟩
 
 theorem SUBT3 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  subt τ ρ ⊆ τ := by
+  simp only [Set.subset_def]
+  intro T P x
+  unfold subt
+  simp only [Set.mem_setOf_eq]
+  intro hx
+  exact hx.1
+
+theorem SUBT4 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   ordered τ →
   ∀ (ρ : Set (timeline κ n × timeline κ n)),
@@ -658,19 +672,26 @@ theorem SUBT3 {κ : Type T} {n : ℕ} :
     rcases ssthm1 with ⟨p, hp⟩
     have ssthm2 := hSP p hp
     exact ⟨p, ssthm2⟩
-  /-have sthm2 : ¬ single T := by
-    unfold single
-    simp only [not_and, not_exists, not_forall]
-    intro hT p
+  have sthm2 : ∃ x, x ∉ P ∧ x ∈ T := by
     simp only [ne_eq, Set.ext_iff] at hNP
     push Not at hNP
-    push Not
-    rcases hNP with ⟨h, h2⟩
-    rcases h2.symm with h21 | h22
-    rcases h21.symm with ⟨temp1, temp2⟩
-    use h
-    left
-  -/
+    rcases hNP with ⟨x, hx⟩
+    rcases hx with hx1 | hx2
+    rcases hx1 with ⟨hx11, hx12⟩
+    have sssthm1 := hSP x hx11
+    exact (hx12 sssthm1).elim
+    exact ⟨x, hx2⟩
+  have sthm3 : (subt T P).Nonempty := by
+    unfold subt
+    rw [Set.nonempty_def]
+    simp only [Set.mem_setOf_eq]
+    rcases sthm2 with ⟨x, hx⟩
+    use x
+    exact hx.symm
+  have sthm4 := SUBT3 T P
+
+
+/-
   have sthm2 : ¬ single T := by
     unfold single
     simp only [not_and, not_exists, not_forall]
@@ -680,20 +701,10 @@ theorem SUBT3 {κ : Type T} {n : ℕ} :
     push Not at hNP
     push Not
     intro p
-    have ssthm1 : ∃ x, x ∉ P ∧ x ∈ T := by
-      rcases hNP with ⟨x, hx⟩
-      rcases hx with hx1 | hx2
-      rcases hx1 with ⟨hx11, hx12⟩
-      have sssthm1 := hSP x hx11
-      exact (hx12 sssthm1).elim
-      exact ⟨x, hx2⟩
     rcases ssthm1 with ⟨x, hx⟩
     use x
     right
-
-  unfold subt
-
-  left
+-/
 
 
 
