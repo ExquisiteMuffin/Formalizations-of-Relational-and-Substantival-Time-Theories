@@ -25,8 +25,8 @@ Each proof and definition stated and verified within the *Verification* folder i
 |$\mathbb H ^ n$     |`order_set n`       |
 |$A - B$             |`subt A B`          |
 |$\Sigma _ T (A)$    |`succs A T`         |
-|$fld (T)$           |`ffld T`            |
-|$fld ^ (m) (T)      |`fld n m T`         |
+|$fld \space (T)$    |`ffld T`            |
+|$fld^(m)\space(T)$  |`fld n m T`         |
 |                    |                    |
 |                    |                    |
 
