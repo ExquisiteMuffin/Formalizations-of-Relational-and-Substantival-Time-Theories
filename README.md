@@ -4,7 +4,7 @@
 
 This repository serves the primary purpose of providing verifiable proofs (via Lean 4) for several theorems which are used in the paper "Formalizations of Relational and Substantival Time Theories and Their Consistency with More General Theories of Time." In the folder *Verification*, the following files are, upon the completion of this project, readily available:
 
-* `defs_alg.lean` & `proofs_alg.lean` conjunctly cover both the definitions and a few basic theorems relating to the "Observer Algebras" (formally referred to as "OT" to reference the axioms of an Observer Algebra) discussed in the paper. Several of the theorems proved in `proofs_alg.lean` will be in reference to the proofs in `proofs_timeHT.lean* for reasons which are made clear in the paper.
+* `defs_alg.lean` & `proofs_alg.lean` conjunctly cover both the definitions and a few basic theorems relating to the "Observer Algebras" (formally referred to as "OT" to reference the axioms of an Observer Algebra) discussed in the paper. Several of the theorems proved in `proofs_alg.lean` will be in reference to the proofs in `proofs_timeHT.lean` for reasons which are made clear in the paper.
 * `defs_timeB.lean` & `proofs_timeB.lean` conjunctly cover both the definitions and a few basic theorems relating to the common theory (denoted simply by "B") which is shared by both RT and ST ("RT" and "ST" meaning the formalized relational time and substantival time axioms used in this paper repsecitvely). These files will be referenced constantly in `defs_timeRT.lean`, `defs_timeST.lean`, `proofs_timeRT.lean`, and `proofs_timeST.lean`, since B serves as the theory which both formal theories must model in any of their models.
 * `defs_timeHT.lean` & `proofs_timeHT.lean` conjunctly cover both the definitions and several basic theorems relating to the Hierarchy of Timelines (HT) theory of time. This serves as the theory which, when also given the additional axioms of the Observer Algebras, will be proved to satisyf both ST and RT in at least one of its models.
 * `defs_timeRT.lean`, `defs_timeST.lean`, `proofs_timeRT.lean`, & `proofs_timeST.lean` conjunctly cover the definitions of the formalized relational and substantival time theories (RT and ST, respectively) along with a few relevant theorems for each theory.
@@ -20,19 +20,19 @@ Each proof and definition stated and verified within the *Verification* folder i
 
 ## Notation Translation (Lean 4 to LaTeX)
 
-|Notation            |Lean4               |
+|Notation            |Lean 4              |
 |--------------------|--------------------|
 |$\mathbb H ^ n$     |`order_set n`       |
-|                    |                    |
-|                    |                    |
-|                    |                    |
-|                    |                    |
+|$A - B$             |`subt A B`          |
+|$\Sigma _ T (A)$    |`succs A T`         |
+|$fld (T)$           |`ffld T`            |
+|$fld ^ (m) (T)      |`fld n m T`         |
 |                    |                    |
 |                    |                    |
 
 ## Theorems Cited in Paper
 
-| Theorem | Page #s |
+| Theorem |Page #(s)|
 |---------|---------|
 |INV0     |Pg. 3    |
 |INV7     |Pg. 4    |
