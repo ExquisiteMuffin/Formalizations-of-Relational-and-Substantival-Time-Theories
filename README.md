@@ -26,7 +26,7 @@ Each proof and definition stated and verified within the *Verification* folder i
 |$A - B$             |`subt A B`          |
 |$\Sigma _ T (A)$    |`succs A T`         |
 |$fld \space (T)$    |`ffld T`            |
-|$fld^(m)\space(T)$  |`fld n m T`         |
+|$fld^{(m)}\space(T)$|`fld n m T`         |
 |                    |                    |
 |                    |                    |
 
