@@ -38,6 +38,59 @@ theorem FUNDAMENTAL {κ : Type T} :
 
 
 
+/-
+!SING# : Theorems regarding single timelines
+SING0 : The cardinality of a timeline that is single is exact 1
+SING1 : Any proper subset ("proper subset" meaning, for example, A ⊆ B ∧ A ≠ B)
+        of a single timeline is equal to the empty set
+-/
+theorem SING0 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  single τ → Set.ncard τ = 1 := by
+    intro T singT
+    unfold single at singT
+    rcases singT with ⟨nempt, p, hp⟩
+    have sthm1 : T = {p} := by
+      rw [Set.ext_iff]
+      intro x
+      have ssthm1 := hp x
+      simp only [Set.mem_singleton_iff]
+      exact ssthm1
+    simp only [Set.ncard_eq_one]
+    exact ⟨p, sthm1⟩
+
+theorem SING1 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  single τ → ∀ X ⊆ τ, Set.ncard X < Set.ncard τ
+  → X = ∅ := by
+  intro T singT X subX lessX
+  unfold single at singT
+  have sthm1 := SING0 T singT
+  rw [sthm1] at lessX
+  have zeroX : X.ncard = 0 := by
+    exact Nat.lt_one_iff.mp lessX
+  rw [Set.empty_def]
+  rw [Set.ext_iff]
+  intro x
+  rw [Set.subset_def] at subX
+  have sthm2 : T.ncard ≠ 0 := by
+    omega
+  have sthm3 : T.Finite := by
+    exact Set.finite_of_ncard_ne_zero sthm2
+  have sthm4 : X.Finite := sthm3.subset subX
+  constructor
+  · intro h1
+    simp only [Set.setOf_false, Set.mem_empty_iff_false]
+    have exi : X.Nonempty := ⟨x, h1⟩
+    have sthm5 : Set.ncard X > 0 := by
+      exact exi.ncard_pos sthm4
+    omega
+  · intro h2
+    simp only [Set.setOf_false, Set.mem_empty_iff_false] at h2
+
+
+
+
 
 /-
 !INV# : Theorems regarding inverse timelines
@@ -53,6 +106,7 @@ INV5 - If a timeline is valid, then its inverse is nonempty.
 INV6 - If a timeline is valid, then its inverse is strictly ordered.
 F_INV1 - If a timeline is valid, then its inverse is valid.
 INV7 - If a timeline is valid, then its inverse has its same field.
+INV8 - If an ordered pair is an element of a valid timeline T, then its inverse pair is not in T
 -/
 theorem INV0 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
@@ -495,20 +549,116 @@ theorem INV7 {κ : Type T} {n : ℕ} :
     · exact h1
     · exact ssthm2
 
-
-
-
-/-
-!DOM# : Theorems regarding the domain
--/
-
-
-
-
-
-/-
-!RAN# : Theorems regarding the range
--/
+theorem INV8 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (p : timeline κ n × timeline κ n),
+  (valid_timeline τ ∧ p ∈ τ) → inv_pair p ∉ τ := by
+  intro T p hp
+  rcases hp with ⟨hp1, hp2⟩
+  have valid := hp1
+  unfold valid_timeline at hp1
+  rcases hp1 with ⟨h1, h2, h3, h4⟩
+  unfold ordered at h2
+  unfold nonbranching at h1
+  have sthm1 := h1 p hp2 (inv_pair p)
+  rcases h2 with h21 | h22
+  unfold inv_pair
+  unfold inv_pair at sthm1
+  have sthm2 : (p.2, p.1) ∈ T → False := by
+    intro hhp
+    have ssthm1 := sthm1 hhp
+    simp at ssthm1
+    have ssthm1 : is_imm_succ p.2 p.1 T := by
+      unfold is_imm_succ
+      constructor
+      · exact valid
+      · have sssthm1 : p.1 = p.1 ∧ p.2 = p.2 := by
+          constructor
+          · rfl
+          · rfl
+        have sssthm2 : p ∈ T ∧ p.1 = p.1 ∧ p.2 = p.2 := by
+          constructor
+          · exact hp2
+          · exact sssthm1
+        exact ⟨p, sssthm2⟩
+    have ssthm2 : is_imm_succ p.1 p.2 T := by
+      unfold is_imm_succ
+      constructor
+      · exact valid
+      · have sssthm1 : (p.2, p.1).1 = p.2 ∧ (p.2, p.1).2 = p.1 := by
+          constructor
+          · rfl
+          · rfl
+        have sssthm2 : (p.2, p.1) ∈ T ∧ (p.2, p.1).1 = p.2 ∧ (p.2, p.1).2 = p.1 := by
+          constructor
+          · exact hhp
+          · exact sssthm1
+        exact ⟨inv_pair p, sssthm2⟩
+    have ssthm3 : p.2 ∈ succs p.1 T ∧ p.1 ∈ succs p.2 T := by
+      unfold succs is_succ
+      simp only [gt_iff_lt, ↓existsAndEq, and_true, Set.mem_setOf_eq]
+      constructor
+      · refine ⟨1, ?_, ?_⟩
+        · omega
+        · exact ssthm1
+      · refine ⟨1, ?_, ?_⟩
+        · omega
+        · exact ssthm2
+    have ssthm4 := transitivity n T p.1 p.2 p.1
+    have ssthm5 : p.1 ∈ succs p.1 T := ssthm4 ssthm3
+    have ssthm6 := irreflexivity n T p.1
+    exact ssthm6 ssthm5
+  contrapose sthm2
+  push Not
+  simp only [and_true]
+  exact sthm2
+  have sthm3 := h22 h4 p hp2
+  have sthm4 : (p.2, p.1) ∈ T → False := by
+    intro hhp
+    have ssthm1 : is_imm_succ p.2 p.1 T := by
+      unfold is_imm_succ
+      constructor
+      · exact valid
+      · have sssthm1 : p.1 = p.1 ∧ p.2 = p.2 := by
+          constructor
+          · rfl
+          · rfl
+        have sssthm2 : p ∈ T ∧ p.1 = p.1 ∧ p.2 = p.2 := by
+          constructor
+          · exact hp2
+          · exact sssthm1
+        exact ⟨p, sssthm2⟩
+    have ssthm2 : is_imm_succ p.1 p.2 T := by
+      unfold is_imm_succ
+      constructor
+      · exact valid
+      · have sssthm1 : (p.2, p.1).1 = p.2 ∧ (p.2, p.1).2 = p.1 := by
+          constructor
+          · rfl
+          · rfl
+        have sssthm2 : (p.2, p.1) ∈ T ∧ (p.2, p.1).1 = p.2 ∧ (p.2, p.1).2 = p.1 := by
+          constructor
+          · exact hhp
+          · exact sssthm1
+        exact ⟨inv_pair p, sssthm2⟩
+    have ssthm3 : p.2 ∈ succs p.1 T ∧ p.1 ∈ succs p.2 T := by
+      unfold succs is_succ
+      simp only [gt_iff_lt, ↓existsAndEq, and_true, Set.mem_setOf_eq]
+      constructor
+      · refine ⟨1, ?_, ?_⟩
+        · omega
+        · exact ssthm1
+      · refine ⟨1, ?_, ?_⟩
+        · omega
+        · exact ssthm2
+    have ssthm4 := transitivity n T p.1 p.2 p.1
+    have ssthm5 : p.1 ∈ succs p.1 T := ssthm4 ssthm3
+    have ssthm6 := irreflexivity n T p.1
+    exact ssthm6 ssthm5
+  contrapose sthm4
+  push Not
+  simp only [and_true]
+  exact sthm4
 
 
 
@@ -516,7 +666,33 @@ theorem INV7 {κ : Type T} {n : ℕ} :
 
 /-
 !FLD# : Theorems regarding the field
+FLD0 : The field of a valid timeline P, if P is a subset of another valid timeline T, is a subset
+        of the field of T.
+FLD1 :
 -/
+theorem FLD0 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ: Set (timeline κ n × timeline κ n)),
+  (valid_timeline τ ∧ valid_timeline ρ ∧ ρ ⊆ τ) → ffld ρ ⊆ ffld τ := by
+  intro T P h
+  rcases h with ⟨vT, vP, subPT⟩
+  simp only [Set.subset_def]
+  intro x hx
+  simp only [Set.subset_def] at subPT
+  unfold ffld
+  simp only [Prod.exists, Set.mem_setOf_eq]
+  constructor
+  · unfold order_set
+    simp only [Set.mem_setOf_eq]
+    exact vT
+  · unfold ffld at hx
+    simp only [Prod.exists, Set.mem_setOf_eq] at hx
+    rcases hx with ⟨hxv, hxe⟩
+    unfold order_set at hxv
+    simp only [Set.mem_setOf_eq] at hxv
+    rcases hxe with ⟨y, z, hxef⟩
+    rcases hxef with ⟨eps, eq⟩
+    have sthm1 := subPT (y,z) eps
+    exact ⟨y, z, sthm1, eq⟩
 
 
 
@@ -524,7 +700,149 @@ theorem INV7 {κ : Type T} {n : ℕ} :
 
 /-
 !SP# : Theorems regarding successors and predecessors
+SP0 : If a lower-order timeline B is an immediate successor of another lower-order timeline A
+      within the field of some timeline T, then B is a succesor of A.
+SP1 : If B is an immediate successor of A in T, then A is not an immediate successor of B in T.
+SP2 :
+SP3 :
+SP4 :
+SP5 :
+SP6 :
 -/
+theorem SP0 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  is_imm_succ B A τ → B ∈ succs A τ := by
+    unfold succs is_succ
+    intro T A B hB
+    simp only [gt_iff_lt, ↓existsAndEq, and_true, Set.mem_setOf_eq]
+    refine ⟨1, ?_, ?_⟩
+    omega
+    exact hB
+
+theorem SP1 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  (is_imm_succ A B τ) → ¬is_imm_succ B A τ := by
+  intro T A B h
+  have sthm2 := transitivity n T B A B
+  have sthm3 := irreflexivity n T B
+  have sthm4 : ¬ ((is_imm_succ A B T) → ¬is_imm_succ B A T) → False := by
+    push Not
+    intro hp
+    have ssthm1 := SP0 T B A hp.1
+    have ssthm2 := SP0 T A B hp.2
+    have ssthm3 : A ∈ succs B T ∧ B ∈ succs A T := by
+      constructor
+      · exact ssthm1
+      · exact ssthm2
+    have ssthm4 := sthm2 ssthm3
+    exact sthm3 ssthm4
+  push Not at sthm4
+  contrapose sthm4
+  push Not
+  simp only [and_true]
+  constructor
+  · exact h
+  · exact sthm4
+
+theorem SP2 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  B ∈ succs A τ → A ∉ succs B τ := by
+  intro T A B hB
+  have transit := transitivity n T A B A
+  have irreflex := irreflexivity n T A
+  have contra : A ∈ succs B T → False := by
+    intro hyp
+    have fhyp : B ∈ succs A T ∧ A ∈ succs B T := ⟨hB, hyp⟩
+    have ssthm1 := transit fhyp
+    exact irreflex ssthm1
+  contrapose contra
+  push Not
+  simp only [and_true]
+  exact contra
+
+theorem SP3 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  B ∈ succs A τ ↔ A ∈ preds B τ := by
+  intro T A B
+  have tot := totality n T A B
+  constructor
+  · intro hB
+    have ffldmem : A ∈ ffld T ∧ B ∈ ffld T := by
+      unfold succs is_succ at hB
+      simp only [Set.mem_setOf_eq] at hB
+      rcases hB with ⟨x, gr, hx⟩
+      cases x with
+      | zero => simp at gr
+      | succ x =>
+        cases x with
+        | zero =>
+          simp at hx
+          unfold is_imm_succ at hx
+          unfold ffld
+          unfold order_set
+          simp only [Set.mem_setOf_eq]
+          rcases hx with ⟨hx1, X, HX1, HX2, HX3⟩
+
+          constructor
+          · refine ⟨hx.1, ?_⟩
+
+        | succ =>
+          simp at hx
+
+
+
+  /-
+  · intro hp1
+    unfold preds
+    simp only [Set.mem_setOf_eq]
+    have sthm1 : A = B → False := by
+      intro eq
+      have ssthm1 := irreflexivity n T B
+      rw [eq] at hp1
+      contradiction
+    have sthm2 : A ≠ B := by
+      exact sthm1
+    unfold succs at hp1
+    unfold succs
+    simp only [Set.mem_setOf_eq]
+    simp only [Set.mem_setOf_eq] at hp1
+    rcases hp1 with ⟨m, hp11⟩
+    rcases hp11 with ⟨hA, hB⟩
+    unfold is_succ at hB
+    split at hB
+    · contradiction
+    ·
+    ·
+  · intro hp2
+-/
+
+theorem SP4 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  B ∈ succs A τ ↔ B ∈ preds A (inv_timeline τ) := by
+  sorry
+
+theorem SP5 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (B : timeline κ n),
+  (succs B τ) = ∅ → ∀ A ∈ ffld τ, A ∈ preds B τ := by
+  sorry
+
+theorem SP6 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (B : timeline κ n),
+  (preds B τ) = ∅ → ∀ A ∈ ffld τ, A ∈ succs B τ := by
+  sorry
+
+theorem SP7 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A : timeline κ n),
+  succs A τ ∩ preds A τ = ∅ := by
+  sorry
 
 
 
@@ -653,6 +971,15 @@ theorem SUBT3 {κ : Type T} {n : ℕ} :
   exact hx.1
 
 theorem SUBT4 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  (valid_timeline τ ∧ valid_timeline ρ ∧ ρ ⊆ τ) →
+  ∀ x ∈ ffld ρ, ∀ y ∈ ffld (subt τ ρ), y ∈ (succs x τ) := by
+  intro T P h x fx y fsy
+  rcases h with ⟨vT, vP, subPT⟩
+  simp only [Set.subset_def] at subPT
+  simp at subPT
+
+theorem SUBT5 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   ordered τ →
   ∀ (ρ : Set (timeline κ n × timeline κ n)),
@@ -689,6 +1016,8 @@ theorem SUBT4 {κ : Type T} {n : ℕ} :
     use x
     exact hx.symm
   have sthm4 := SUBT3 T P
+  right
+  intro hS x hx
 
 
 /-
