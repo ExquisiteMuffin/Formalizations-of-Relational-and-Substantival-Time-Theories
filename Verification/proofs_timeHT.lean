@@ -766,79 +766,103 @@ theorem SP2 {κ : Type T} {n : ℕ} :
 theorem SP3 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (A B : timeline κ n),
-  B ∈ succs A τ ↔ A ∈ preds B τ := by
-  intro T A B
-  have tot := totality n T A B
-  constructor
-  · intro hB
-    have ffldmem : A ∈ ffld T ∧ B ∈ ffld T := by
-      unfold succs is_succ at hB
-      simp only [Set.mem_setOf_eq] at hB
-      rcases hB with ⟨x, gr, hx⟩
-      cases x with
-      | zero => simp at gr
-      | succ x =>
-        cases x with
-        | zero =>
-          simp at hx
-          unfold is_imm_succ at hx
-          unfold ffld
-          unfold order_set
-          simp only [Set.mem_setOf_eq]
-          rcases hx with ⟨hx1, X, HX1, HX2, HX3⟩
-
-          constructor
-          · refine ⟨hx.1, ?_⟩
-
-        | succ =>
-          simp at hx
-
-
-
-  /-
-  · intro hp1
-    unfold preds
-    simp only [Set.mem_setOf_eq]
-    have sthm1 : A = B → False := by
-      intro eq
-      have ssthm1 := irreflexivity n T B
-      rw [eq] at hp1
-      contradiction
-    have sthm2 : A ≠ B := by
-      exact sthm1
-    unfold succs at hp1
-    unfold succs
-    simp only [Set.mem_setOf_eq]
-    simp only [Set.mem_setOf_eq] at hp1
-    rcases hp1 with ⟨m, hp11⟩
-    rcases hp11 with ⟨hA, hB⟩
-    unfold is_succ at hB
-    split at hB
-    · contradiction
-    ·
-    ·
-  · intro hp2
--/
+  A ∈ succs B τ → A ∈ ffld τ ∧ B ∈ ffld τ := by
+  intro T A B hA
+  unfold succs is_succ at hA
+  simp only [Set.mem_setOf_eq] at hA
+  rcases hA with ⟨x, gr, hx⟩
+  induction x generalizing A B with
+  | zero => simp at gr
+  | succ x ih =>
+    cases x with
+    | zero =>
+      simp only [zero_add] at hx
+      unfold is_imm_succ at hx
+      unfold ffld
+      unfold order_set
+      simp only [Set.mem_setOf_eq]
+      rcases hx with ⟨hx1, X, HX1, HX2, HX3⟩
+      have or1 : X.1 = B ∨ X.2 = B := by
+        left
+        exact HX2
+      have or2 : X.1 = A ∨ X.2 = A := by
+        right
+        exact HX3
+      constructor
+      · refine ⟨hx1, ?_⟩
+        exact ⟨X, HX1, or2⟩
+      · refine ⟨hx1, ?_⟩
+        exact ⟨X, HX1, or1⟩
+    | succ nt =>
+      simp only [gt_iff_lt, lt_add_iff_pos_left, Order.lt_add_one_iff, zero_le, true_and] at hx
+      simp only [gt_iff_lt, lt_add_iff_pos_left, add_pos_iff, Order.lt_two_iff, zero_le, or_true,
+        Order.lt_add_one_iff, forall_const] at gr ih
+      rcases hx with ⟨X, iS, iIS⟩
+      unfold is_succ at iS
+      have new1 := ih X B iS
+      have new2 : A ∈ ffld T := by
+        unfold ffld order_set
+        simp only [Set.mem_setOf_eq]
+        unfold is_imm_succ at iIS
+        refine ⟨iIS.1, ?_⟩
+        rcases iIS.2 with ⟨Y, hYB, hY1eq, hY2eq⟩
+        use Y
+        refine ⟨hYB, ?_⟩
+        right
+        exact hY2eq
+      constructor
+      · exact new2
+      · exact new1.2
 
 theorem SP4 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  valid_timeline τ → (B ∈ succs A τ ↔ A ∈ preds B τ) := by
+  intro T A B vT
+  have tot := totality n T A B
+  have irreflex := irreflexivity n T A
+  constructor
+  · intro hB
+    have ffldmem := SP3 T B A hB
+    have hyp : A ∈ ffld T ∧ B ∈ ffld T ∧ valid_timeline T := ⟨ffldmem.2, ffldmem.1, vT⟩
+    have total := tot hyp
+    unfold preds
+    simp only [ne_eq, Set.sep_and, Set.mem_inter_iff, Set.mem_setOf_eq]
+    refine ⟨?_, ffldmem.2, ?_⟩
+    refine ⟨ffldmem.2, ?_⟩
+    have sthm1 := SP2 T A B hB
+    exact sthm1
+    have contra : A = B → False := by
+      intro eq
+      rw [eq.symm] at hB
+      exact irreflex hB
+    contrapose contra
+    push Not
+    simp only [and_true]
+    exact contra
+  · intro hA
+    unfold preds at hA
+    simp only [ne_eq, Set.mem_setOf_eq] at hA
+
+theorem SP5 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (A B : timeline κ n),
   B ∈ succs A τ ↔ B ∈ preds A (inv_timeline τ) := by
   sorry
 
-theorem SP5 {κ : Type T} {n : ℕ} :
+theorem SP6 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (B : timeline κ n),
   (succs B τ) = ∅ → ∀ A ∈ ffld τ, A ∈ preds B τ := by
   sorry
 
-theorem SP6 {κ : Type T} {n : ℕ} :
+theorem SP7 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (B : timeline κ n),
   (preds B τ) = ∅ → ∀ A ∈ ffld τ, A ∈ succs B τ := by
   sorry
 
-theorem SP7 {κ : Type T} {n : ℕ} :
+theorem SP8 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (A : timeline κ n),
   succs A τ ∩ preds A τ = ∅ := by

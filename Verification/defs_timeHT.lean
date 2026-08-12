@@ -91,7 +91,7 @@ def is_succ {n : ℕ} {κ : Type T} (B A : timeline κ n) (τ : Set (timeline κ
     (m : ℕ) → Prop
   | 0 => False
   | 1 => is_imm_succ B A τ
-  | m + 1 => m > 0 ∧ ∃ X, (is_succ X A τ m ∧ (∃ Y, is_imm_succ Y X τ ∧ Y = B))
+  | m + 1 => m > 0 ∧ ∃ X, (is_succ X A τ m ∧ is_imm_succ B X τ)
 
 def succs {n : ℕ} {κ : Type T} (A : timeline κ n) (τ : Set (timeline κ n × timeline κ n)) :
     Set (timeline κ n)
@@ -99,7 +99,7 @@ def succs {n : ℕ} {κ : Type T} (A : timeline κ n) (τ : Set (timeline κ n �
 
 def preds {n : ℕ} {κ : Type T} (A : timeline κ n) (τ : Set (timeline κ n × timeline κ n)) :
     Set (timeline κ n)
-  := {s | s ∈ ffld τ ∧ ¬(s ∈ succs A τ) ∧ s ≠ A}
+  := {s | s ∈ ffld τ ∧ A ∈ ffld τ ∧ ¬(s ∈ succs A τ) ∧ s ≠ A}
 
 def inv_timeline {n : ℕ} {κ : Type T} (τ : Set (timeline κ n × timeline κ n)) :
     Set (timeline κ n × timeline κ n)
