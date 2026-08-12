@@ -715,7 +715,7 @@ theorem SP0 {κ : Type T} {n : ℕ} :
   is_imm_succ B A τ → B ∈ succs A τ := by
     unfold succs is_succ
     intro T A B hB
-    simp only [gt_iff_lt, ↓existsAndEq, and_true, Set.mem_setOf_eq]
+    simp only [gt_iff_lt, Set.mem_setOf_eq]
     refine ⟨1, ?_, ?_⟩
     omega
     exact hB
@@ -827,9 +827,8 @@ theorem SP4 {κ : Type T} {n : ℕ} :
     have hyp : A ∈ ffld T ∧ B ∈ ffld T ∧ valid_timeline T := ⟨ffldmem.2, ffldmem.1, vT⟩
     have total := tot hyp
     unfold preds
-    simp only [ne_eq, Set.sep_and, Set.mem_inter_iff, Set.mem_setOf_eq]
-    refine ⟨?_, ffldmem.2, ?_⟩
-    refine ⟨ffldmem.2, ?_⟩
+    simp only [ne_eq, Set.mem_setOf_eq]
+    refine ⟨ffldmem.2, ffldmem.1, ?_, ?_⟩
     have sthm1 := SP2 T A B hB
     exact sthm1
     have contra : A = B → False := by
@@ -843,11 +842,18 @@ theorem SP4 {κ : Type T} {n : ℕ} :
   · intro hA
     unfold preds at hA
     simp only [ne_eq, Set.mem_setOf_eq] at hA
+    rcases hA with ⟨ffldA, ffldB, nsuccA, neq⟩
+    have hyp : A ∈ ffld T ∧ B ∈ ffld T ∧ valid_timeline T := ⟨ffldA, ffldB, vT⟩
+    have total := tot hyp
+    rcases total with As | equ | Bs
+    · exact False.elim (nsuccA As)
+    · exact False.elim (neq equ)
+    · exact Bs
 
 theorem SP5 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (A B : timeline κ n),
-  B ∈ succs A τ ↔ B ∈ preds A (inv_timeline τ) := by
+  valid_timeline τ → (B ∈ succs A τ ↔ B ∈ preds A (inv_timeline τ)) := by
   sorry
 
 theorem SP6 {κ : Type T} {n : ℕ} :
@@ -875,9 +881,11 @@ theorem SP8 {κ : Type T} {n : ℕ} :
 /-
 !SUBT# : Theorems regarding the substraction function
 SUBT0 : Every timeline minus itself is equal to the empty set
-SUBT1 :
-SUBT2 :
-SUBT3 :
+SUBT1 : Every subtraction of timelines (T - P) is equal to the inverse
+        timeline of (inverse T - inverse P)
+SUBT2 : The first field of a timeline given by T - P, where T is a valid timeline and P is some
+        timeline (valid or invalid), is a subset of the first field of T
+SUBT3 : A timeline given by (T - P), the difference of two timelines T and P, is a subset of T
 SUBT4 :
 -/
 theorem SUBT0 {κ : Type T} {n : ℕ} :
@@ -1042,22 +1050,6 @@ theorem SUBT5 {κ : Type T} {n : ℕ} :
   have sthm4 := SUBT3 T P
   right
   intro hS x hx
-
-
-/-
-  have sthm2 : ¬ single T := by
-    unfold single
-    simp only [not_and, not_exists, not_forall]
-    intro nonempty
-    rcases hVP11 with ⟨y, hy⟩
-    simp only [ne_eq, Set.ext_iff] at hNP
-    push Not at hNP
-    push Not
-    intro p
-    rcases ssthm1 with ⟨x, hx⟩
-    use x
-    right
--/
 
 
 
