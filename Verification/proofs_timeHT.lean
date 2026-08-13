@@ -27,7 +27,7 @@ axiom totality {κ : Type T} :
   (A ∈ ffld τ ∧ B ∈ ffld τ ∧ valid_timeline τ)
   → (A ∈ succs B τ ∨ A = B ∨ B ∈ succs A τ)
 
-theorem FUNDAMENTAL {κ : Type T} :
+theorem fundamental {κ : Type T} :
   ∀ (n : ℕ)
   (τ : Set (timeline κ n × timeline κ n)),
   ∃ (t : timeline κ (n + 1)),
@@ -863,10 +863,21 @@ theorem SP6 {κ : Type T} {n : ℕ} :
   sorry
 
 theorem SP7 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n))
-  (B : timeline κ n),
-  (preds B τ) = ∅ → ∀ A ∈ ffld τ, A ∈ succs B τ := by
-  sorry
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  ∀ B ∈ ffld τ,
+  valid_timeline τ →
+  (preds B τ) = ∅ → ∀ A ∈ ffld τ, A ≠ B → A ∈ succs B τ := by
+  unfold preds
+  intro T B Binf vT empt A Ainf AneB
+  --simp [Set.mem_setOf_eq] at Ainf
+  simp only [ne_eq] at empt
+  rw [Set.eq_empty_iff_forall_notMem] at empt
+  replace empt := empt A
+  simp only [Set.sep_and, Set.mem_inter_iff, Set.mem_setOf_eq, not_and, not_not, and_imp] at empt
+  replace empt := empt Ainf Binf Ainf
+  contrapose empt
+  push Not
+  refine ⟨empt, Ainf, AneB⟩
 
 theorem SP8 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
@@ -1004,61 +1015,77 @@ theorem SUBT3 {κ : Type T} {n : ℕ} :
 
 theorem SUBT4 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  (valid_timeline τ ∧ valid_timeline ρ ∧ ρ ⊆ τ) →
-  ∀ x ∈ ffld ρ, ∀ y ∈ ffld (subt τ ρ), y ∈ (succs x τ) := by
+  (valid_timeline τ ∧ valid_timeline ρ ∧ valid_timeline (subt τ ρ) ∧ ρ ⊆ τ) →
+  ∀ x ∈ ffld ρ, ∀ y ∈ ffld (subt τ ρ), y ∈ (succs x τ) ∨ y ∈ (preds x τ) ∨ y = x := by
   intro T P h x fx y fsy
-  rcases h with ⟨vT, vP, subPT⟩
-  simp only [Set.subset_def] at subPT
-  simp at subPT
+  rcases h with ⟨vT, vP, vSubt, subPT⟩
+  have ffld_subTP := FLD0 T P ⟨vT, vP, subPT⟩
+  have ffld_sub := SUBT2 T P vT
+  simp only [Set.subset_def] at subPT ffld_sub ffld_subTP
+  specialize ffld_sub y fsy
+  have x_in_T := ffld_subTP x fx
+  simp only [Prod.forall] at subPT
+  unfold preds
+  simp only [Set.mem_setOf_eq]
+  rw [or_iff_not_imp_left]
+  intro hp1
+  rw [or_iff_not_imp_left]
+  contrapose
+  intro hp2
+  simp only [ne_eq]
+  refine ⟨ffld_sub, x_in_T, ?_, hp2⟩
+  exact hp1
 
 theorem SUBT5 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   ordered τ →
   ∀ (ρ : Set (timeline κ n × timeline κ n)),
   (ρ ⊆ τ ∧ ordered ρ ∧ ρ ≠ τ) → ordered (subt τ ρ) := by
-  intro T
-  unfold ordered
-  intro hVT P hP
-  rcases hP with ⟨hSP, hVP, hNP⟩
-  rcases hVP with hVP1 | hVP2
-  simp only [Set.subset_def] at hSP
-  unfold single at hVP1
-  rcases hVP1 with ⟨hVP11, hVP12⟩
-  have sthm1 : T.Nonempty := by
-    have ssthm1 : ∃ p, p ∈ P := by
-      rw [Set.nonempty_def] at hVP11
-      exact hVP11
-    rcases ssthm1 with ⟨p, hp⟩
-    have ssthm2 := hSP p hp
-    exact ⟨p, ssthm2⟩
-  have sthm2 : ∃ x, x ∉ P ∧ x ∈ T := by
-    simp only [ne_eq, Set.ext_iff] at hNP
-    push Not at hNP
-    rcases hNP with ⟨x, hx⟩
-    rcases hx with hx1 | hx2
-    rcases hx1 with ⟨hx11, hx12⟩
-    have sssthm1 := hSP x hx11
-    exact (hx12 sssthm1).elim
-    exact ⟨x, hx2⟩
-  have sthm3 : (subt T P).Nonempty := by
-    unfold subt
-    rw [Set.nonempty_def]
-    simp only [Set.mem_setOf_eq]
-    rcases sthm2 with ⟨x, hx⟩
-    use x
-    exact hx.symm
-  have sthm4 := SUBT3 T P
-  right
-  intro hS x hx
 
+theorem SUBT6 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  subt τ ρ ∩ ρ = ∅ := by
+  intro T P
+  unfold subt
+  ext x
+  simp only [Set.mem_inter_iff, Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false, not_and,
+    and_imp, imp_self, implies_true]
 
+theorem SUBT7 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  ffld (subt τ ρ) ∩ ffld ρ =
+
+theorem SUBT7 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  (valid_timeline τ ∧ valid_timeline ρ ∧ ρ ⊆ τ) →
+  (∃ (p : timeline κ n × timeline κ n), p ∈ ρ ∧ succs p.1 τ = ∅)
+  → ∀ x ∈ ffld ρ, ∀ y ∈ ffld (subt τ ρ), x ≠ y → y ∈ preds x τ := by
+  intro T P
+  simp only [and_imp]
+  intro vT vP subPT exi_p x ffldx y ffldy xney
+  have ffld_subPT := FLD0 T P ⟨vT, vP, subPT⟩
+  have ffld_subtTP := SUBT2 T P vT
+  rcases exi_p with ⟨p, pinP, empt⟩
+  simp only [Set.subset_def] at subPT ffld_subPT ffld_subtTP
+  specialize ffld_subtTP y ffldy
+  have ffldxT := ffld_subPT x ffldx
+  have pinT := subPT p pinP
+  have xsucc := SP6 T p.1 empt x ffldxT
+  have ysucc := SP6 T p.1 empt y ffld_subtTP
+  have tot := totality n T x y ⟨ffldxT, ffld_subtTP, vT⟩
+  simp only [xney, false_or] at tot
+  have temp := SP4 T y x vT
+  rw [temp] at tot
+  have PTexclusive := SUBT6 T P
+  have contra : y ∈ succs x T → False := by
+    intro ysuccx
 
 
 
 /-
 !DIST# : Theorems regarding the distance function
 DIST0 - The distance between A and A in a timeline T is 0
-DIST1 - The distance function is symmetric
+DIST1 - The distance function is perfectly symmetric
 DIST2 - The distance between A and B in T is the same as in inv_timeline T
 -/
 theorem DIST0 {κ : Type T} (k n : ℕ) (A : timeline κ (k + n)) :

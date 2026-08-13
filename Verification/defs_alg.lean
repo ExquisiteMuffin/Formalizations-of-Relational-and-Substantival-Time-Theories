@@ -10,6 +10,8 @@ namespace Alg
 
 universe T
 
+def see {κ : Type T} {n : ℕ} (A B : timeline κ n) : (timeline)
+
 def bracket {κ : Type T} {n : ℕ} : (timeline κ n × timeline κ n)
 
 def add
