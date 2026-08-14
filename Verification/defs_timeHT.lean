@@ -101,6 +101,14 @@ def preds {n : ℕ} {κ : Type T} (A : timeline κ n) (τ : Set (timeline κ n �
     Set (timeline κ n)
   := {s | s ∈ ffld τ ∧ A ∈ ffld τ ∧ ¬(s ∈ succs A τ) ∧ s ≠ A}
 
+def firsteles {n : ℕ} {κ : Type T} (τ : Set (timeline κ n × timeline κ n)) :
+    Set (timeline κ n)
+  := {s ∈ ffld τ | ∀ p ∈ τ, p.2 ≠ s}
+
+def lasteles {n : ℕ} {κ : Type T} (τ : Set (timeline κ n × timeline κ n)) :
+    Set (timeline κ n)
+  := {s ∈ ffld τ | ∀ p ∈ τ, p.1 ≠ s}
+
 def inv_timeline {n : ℕ} {κ : Type T} (τ : Set (timeline κ n × timeline κ n)) :
     Set (timeline κ n × timeline κ n)
   := {p | ∃ q ∈ τ, p.1 = q.2 ∧ p.2 = q.1}
