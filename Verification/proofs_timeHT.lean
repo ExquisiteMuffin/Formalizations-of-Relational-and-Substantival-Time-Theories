@@ -994,11 +994,258 @@ theorem SP10 {κ : Type T} {n : ℕ} :
     exact transitivity n T C p.1 x ⟨issucc1, issucc2⟩
   exact ⟨C, (SP4 T C x vT).mp predC⟩
 
-
-theorem INFINITY {κ : Type T} {n : ℕ} :
+theorem SP11 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  (∀ x ∈ ffld τ, ∃ y, y ∈ preds x τ) → ¬ (τ.Finite) := by
+  valid_timeline τ → ∀ (A B C : timeline κ n),
+  ((B ∈ preds C τ ∧ A ∈ preds B τ) → A ∈ preds C τ) := by
+  intro T vT y z x
+  have transit := transitivity n T y z x
+  intro hp
+  have eq1 := SP4 T z x vT
+  have eq2 := SP4 T y z vT
+  have eq3 := SP4 T y x vT
+  rw [eq1, eq2, eq3] at transit
+  exact transit hp.symm
 
+theorem SP12 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → (∀ x y, x ∈ preds y τ → (preds x τ ⊆ preds y τ ∧ preds x τ ≠ preds y τ)) := by
+  intro T vT x y xinPr
+  have transit := fun (A : timeline κ n) => SP11 T vT A x y
+  have irreflex := irreflexivity n T
+  have eq1 := SP4 T x y vT
+  have eq2 := SP4 T x x vT
+  replace eq2 := not_iff_not.mpr eq2
+  have claim : ∀ C, C ∈ preds x T → C ∈ preds y T := by
+    intro C
+    simp only [and_imp] at transit
+    exact transit C xinPr
+  simp only [Set.subset_def]
+  refine ⟨claim, ?_⟩
+  have neclaim : x = y → False := by
+    rw [eq1.symm] at xinPr
+    intro feq
+    rw [feq] at xinPr
+    exact irreflex y xinPr
+  simp only [ne_eq, Set.ext_iff]
+  push Not
+  use x
+  replace irreflex := irreflex x
+  rw [eq2] at irreflex
+  right
+  exact ⟨irreflex, xinPr⟩
+
+theorem SP13 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → (∀ x y, x ∈ preds y τ → (preds x τ ⊂ preds y τ)) := by
+  intro T vT x y xinP
+  have claim := SP12 T vT x y xinP
+  have nclaim : ¬ (preds y T ⊆ preds x T) := by
+    simp only [Set.subset_def]
+    push Not
+    have examp := irreflexivity n T x
+    have eq := not_iff_not.mpr (SP4 T x x vT)
+    rw [eq] at examp
+    exact ⟨x, xinP, examp⟩
+  simp only [Set.ssubset_def]
+  exact ⟨claim.1, nclaim⟩
+
+theorem SP14 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → (∀ x y, x ∈ succs y τ → (succs x τ ⊂ succs y τ)) := by
+  intro T vT x y xinP
+  --rw [SP4 T y x vT] at xinP
+  have transit := fun (A : timeline κ n) => transitivity n T y x A
+  have irreflex := irreflexivity n T
+  have eq1 := SP4 T x y vT
+  --replace eq2 := not_iff_not.mpr eq2
+  have claim : ∀ C, C ∈ succs x T → C ∈ succs y T := by
+    intro C
+    simp only [and_imp] at transit
+    exact transit C xinP
+  simp only [Set.ssubset_def, Set.subset_def, not_forall]
+  replace irreflex := irreflex x
+  refine ⟨claim, ?_⟩
+  exact ⟨x, xinP, irreflex⟩
+
+theorem SP15 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ∀ (A B C : timeline κ n), (is_imm_succ A C τ ∧ is_imm_succ B C τ) → A = B := by
+    intro T ⟨nbT, orderT, sorderT, nemptyT⟩ A B C
+    unfold is_imm_succ
+    unfold nonbranching at nbT
+    simp only [Prod.exists, exists_eq_right_right, exists_eq_right]
+    intro vT
+    rcases vT with ⟨x, y, z⟩
+    simp only [Prod.forall] at nbT
+    replace nbT := (nbT C A x.2 C B z).mp
+    simp only [forall_const] at nbT
+    exact nbT
+
+theorem SP16 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ∀ (A B : timeline κ n),
+  A ∈ succs B τ → succs A τ ⊆ succs B τ := by
+    intro T vT A B hA
+    simp only [Set.subset_def]
+    intro x xinA
+    have irreflex := irreflexivity n T x
+    exact transitivity n T B A x ⟨hA, xinA⟩
+
+theorem SP17 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ →
+  ∀ (A B : timeline κ n),
+  A ∈ ffld τ → succs A τ ⊆ succs B τ → preds B τ ⊆ preds A τ := by
+  intro T vT A B Ainffld subsucc
+  simp only [Set.subset_def] at subsucc
+  simp only [Set.subset_def]
+  intro x xinpredsB
+  have claim := SP4 T B A vT
+  have rewrite := (SP4 T x B vT).mpr xinpredsB
+  have ffldb := (SP3 T B x rewrite).symm
+  have transit := SP11 T vT x B A
+  have nclaim : A = B ∨ B ∈ preds A T → x ∈ preds A T := by
+    intro lor
+    rcases lor with frst | scnd
+    rw [frst]
+    exact xinpredsB
+    exact transit ⟨scnd, xinpredsB⟩
+  have tot := totality n T A B ⟨Ainffld, ffldb.2, vT⟩
+  rw [claim] at tot
+  have negg : B ∉ succs A T := by
+    intro inns
+    replace subsucc := subsucc B inns
+    exact (irreflexivity n T B) subsucc
+  simp only [or_imp] at nclaim
+  rcases tot with X | Y | Z
+  · exact nclaim.2 X
+  · exact nclaim.1 Y
+  · contradiction
+
+theorem SP18 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  (valid_timeline τ ∧ (ffld τ).Finite) → (∀ x y, is_imm_succ y x τ → (succs y τ).ncard + 1 = (succs x τ).ncard) := by
+  intro T ⟨vT, finfld⟩ x y ysx
+  obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (succs x T).ncard := by
+    exact ⟨(succs x T).ncard, rfl⟩
+  have yssx := SP0 T x y ysx
+  have claim := SP14 T vT y x yssx
+  have extclaim := SP16 T vT y x yssx
+  replace extclaim := SP17 T vT y x (SP3 T y x yssx).1 extclaim
+  have irreflexy := irreflexivity n T y
+  have irreflexx := irreflexivity n T x
+  have transit := fun (A : timeline κ n) => transitivity n T A x y
+  have exisx : ∃ z, z ∈ succs x T ∧ z ∉ succs y T := ⟨y, yssx, irreflexy⟩
+  have cclaim : ∀ z ∈ succs x T, z ∉ succs y T ↔ z = y := by
+    intro z hz
+    constructor
+    · intro nins
+      have zinffld := (SP3 T z x hz).1
+      have yinffld := (SP3 T y x yssx).1
+      have tot := totality n T z y ⟨zinffld, yinffld, vT⟩
+      have ntot : y ∈ succs z T ∨ z = y := (tot.resolve_left nins).symm
+      simp [or_iff_not_imp_left] at ntot
+      unfold is_imm_succ at ysx
+      have sclaim := ysx.2
+      have negs : ¬ ∃ r, r ∈ succs x T ∧ r ∈ preds y T := by
+        push Not
+        intro r rins
+        unfold succs at rins
+        simp only [gt_iff_lt, Set.mem_setOf_eq] at rins
+        unfold is_succ at rins
+        rcases rins with ⟨m, mpos, hrm⟩
+        cases m with
+        | zero =>
+          omega
+        | succ m =>
+          cases m with
+          | zero =>
+            have hrx : is_imm_succ r x T := by
+              simpa using hrm
+            have imp := (SP15 T vT r y x ⟨hrx, ysx⟩)
+            have eq := not_iff_not.mpr (SP4 T y y vT)
+            rw [eq] at irreflexy
+            nth_rewrite 2 [← imp] at irreflexy
+            exact irreflexy
+          | succ =>
+            rename_i k
+            have ssclaim := hrm.2
+            have transstep : ∃ X, X ∈ succs x T ∧ is_imm_succ r X T := by
+              unfold succs
+              simp only [Set.mem_setOf_eq]
+              rcases ssclaim with ⟨X, B⟩
+              refine ⟨X, ?_, B.2⟩
+              exact ⟨k + 1, by omega, B.1⟩
+            have rrinsx : r ∈ succs x T := by
+              rcases transstep with ⟨X, hX, hr⟩
+              have rimm := SP0 T X r hr
+              exact transitivity n T x X r ⟨hX, rimm⟩
+            have ex := (not_iff_not.mpr (SP4 T r x vT)).mp
+            have new := ex (SP2 T x r rrinsx)
+            have rinff := (SP3 T r x rrinsx).1
+            have neq : r ≠ x := by
+              intro eqq
+              rw [eqq] at rrinsx
+              exact irreflexx rrinsx
+            have jjj : r ∈ preds y T → r = x ∨ r ∈ preds x T := by
+              intro hp
+              simp only [or_iff_not_imp_left]
+              intro neq
+    · intro eqq
+      rw [eqq]
+      exact irreflexy
+
+
+theorem SP19 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → (∀ x, (preds x τ).Finite → ∃ z, preds z τ = ∅) := by
+  intro T vT x finpreds
+  have subsetcl := fun (y : timeline κ n) => SP13 T vT y x
+  obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (preds x T).ncard := by
+    exact ⟨(preds x T).ncard, rfl⟩
+  induction n with
+  | zero =>
+
+
+theorem SPINFINITY {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  (valid_timeline τ ∧ (∀ x ∈ ffld τ, ∃ y, y ∈ preds x τ)) → ¬ (τ.Finite) := by
+  unfold ffld order_set
+  intro T ⟨⟨nbT, orderT, sorderT, nemptyT⟩, all⟩
+  --unfold preds at all
+  simp only [Set.mem_setOf_eq, and_imp] at all
+  have transit := transitivity n T
+  have irreflex := irreflexivity n T
+  have infin := SP12 T ⟨nbT, orderT, sorderT, nemptyT⟩
+  have infins := SP13 T ⟨nbT, orderT, sorderT, nemptyT⟩
+  replace all := (fun (vT : valid_timeline T) (x : timeline κ n) => all x vT) ⟨nbT, orderT, sorderT, nemptyT⟩
+  have claim : ∀ x ∈ ffld T, (preds x T).Nonempty := by
+    intro x xinffld
+    unfold ffld at xinffld
+    simp only [Set.mem_setOf_eq] at xinffld
+    have nclaim := all x xinffld.2
+    exact nclaim
+  intro hfin
+  have hffld : (ffld T).Finite := by
+    have hfst : (Prod.fst '' T).Finite := hfin.image Prod.fst
+    have hsnd : (Prod.snd '' T).Finite := hfin.image Prod.snd
+    apply (hfst.union hsnd).subset
+    intro x hx
+    rcases hx with ⟨_, p, hpT, hpx | hpx⟩
+    · left
+      exact ⟨p, hpT, hpx⟩
+    · right
+      exact ⟨p, hpT, hpx⟩
+  have hpreds : ∀ x ∈ ffld T, (preds x T).Finite := by
+    intro x hx
+    apply hffld.subset
+    intro y hy
+    unfold preds at hy
+    simp only [Set.mem_setOf_eq] at hy
+    exact hy.1
+
+  --simp only [ne_eq, Set.sep_and, Set.mem_inter_iff] at all
 
 
 
@@ -1006,9 +1253,9 @@ theorem INFINITY {κ : Type T} {n : ℕ} :
 /-
 !FL# : Theorems regarding the the definition of lasteles and firsteles
 -/
-theorem FL0 {κ : Type T} {n : ℕ} :
+/-theorem FL0 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  τ.Finite → ∃ x
+  τ.Finite → ∃ x-/
 
 theorem FL1 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
@@ -1058,6 +1305,7 @@ theorem FL3 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (valid_timeline ρ ∧ ρ ⊆ τ)
   → lasteles τ = lasteles ρ ∨ firsteles τ = firsteles ρ := by
+
 
 
 
@@ -1338,6 +1586,18 @@ theorem SUBT8 {κ : Type T} {n : ℕ} :
 
 
 
+
+
+/-
+!COUNT# : Theorems regarding the cardinality of timelines and of fields
+-/
+theorem COUNT0 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  τ
+
+theorem COUNTN {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → (ffld τ).ncard = 1 + τ.ncard := by
 
 
 
