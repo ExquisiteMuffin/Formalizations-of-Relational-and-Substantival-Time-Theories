@@ -1123,7 +1123,68 @@ theorem SP17 {κ : Type T} {n : ℕ} :
   · exact nclaim.1 Y
   · contradiction
 
+theorem fundirreflexivity {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ∀ (B : timeline κ n), B ∉ preds B τ := by
+    intro T vT B
+    exact (not_iff_not.mpr (SP4 T B B vT)).mp (irreflexivity n T B)
+
 theorem SP18 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ∀ (A B : timeline κ n),
+  (A ∈ ffld τ ∧ B ∈ ffld τ ∧ is_imm_succ B A τ)
+    → ∀ (C : timeline κ n), C ∈ preds B τ → C ∉ succs A τ := by
+  intro T vT A B ⟨Ainffld, Binffld, immB⟩ C CinpredsB
+  have cc := SP0 T A B immB
+  unfold is_imm_succ at immB
+  have claim := (SP4 T C B vT).mpr CinpredsB
+  rcases immB.2 with ⟨X, hX, h1eq, h2eq⟩
+  have irreflex := fundirreflexivity T vT B
+  have nbT : nonbranching T := by
+    unfold valid_timeline at vT
+    rcases vT with ⟨i, j⟩
+    exact i
+  unfold nonbranching at nbT
+  replace nbT := nbT X hX
+  rw [h1eq, h2eq] at nbT
+  have thm : ¬ ∃ (x : timeline κ n), x ∈ succs A T ∧ x ∈ preds B T := by
+    push Not
+    intro x xsuccA
+    unfold succs is_succ at xsuccA
+    simp only [Set.mem_setOf_eq] at xsuccA
+    rcases xsuccA with ⟨m, mgr, mthm⟩
+    cases m with
+    | zero =>
+      omega
+    | succ m =>
+      cases m with
+      | zero =>
+        have temp := mthm.2
+        obtain ⟨w, hw, weq⟩ := temp
+        have tempnbT := ((nbT w hw).mp weq.1.symm).symm
+        rw [tempnbT] at weq
+        nth_rewrite 2 [weq.2] at irreflex
+        exact irreflex
+      | succ =>
+        rename_i k
+        have temp := mthm.2
+        have tempg := mthm.1
+        obtain ⟨w, hw, weq⟩ := temp
+        have succsx := SP0 T w x weq
+        unfold is_succ at hw
+        cases k with
+        | zero =>
+          have stemp := hw.2
+
+
+
+theorem SP19 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ∀ (A B : timeline κ n), (A ∈ ffld τ ∧ B ∈ ffld τ ∧ B ∈ succs A τ)
+    → succs A τ = succs B τ ∪ (succs A τ ∩ preds B τ) := by
+
+
+theorem SP20 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   (valid_timeline τ ∧ (ffld τ).Finite) → (∀ x y, is_imm_succ y x τ → (succs y τ).ncard + 1 = (succs x τ).ncard) := by
   intro T ⟨vT, finfld⟩ x y ysx
@@ -1197,7 +1258,7 @@ theorem SP18 {κ : Type T} {n : ℕ} :
       exact irreflexy
 
 
-theorem SP19 {κ : Type T} {n : ℕ} :
+theorem SP21 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   valid_timeline τ → (∀ x, (preds x τ).Finite → ∃ z, preds z τ = ∅) := by
   intro T vT x finpreds
