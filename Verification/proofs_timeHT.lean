@@ -1130,61 +1130,79 @@ theorem fundirreflexivity {κ : Type T} {n : ℕ} :
     exact (not_iff_not.mpr (SP4 T B B vT)).mp (irreflexivity n T B)
 
 theorem SP18 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ → ∀ (A B : timeline κ n),
-  (A ∈ ffld τ ∧ B ∈ ffld τ ∧ is_imm_succ B A τ)
-    → ∀ (C : timeline κ n), C ∈ preds B τ → C ∉ succs A τ := by
-  intro T vT A B ⟨Ainffld, Binffld, immB⟩ C CinpredsB
-  have cc := SP0 T A B immB
-  unfold is_imm_succ at immB
-  have claim := (SP4 T C B vT).mpr CinpredsB
-  rcases immB.2 with ⟨X, hX, h1eq, h2eq⟩
-  have irreflex := fundirreflexivity T vT B
-  have nbT : nonbranching T := by
-    unfold valid_timeline at vT
-    rcases vT with ⟨i, j⟩
-    exact i
-  unfold nonbranching at nbT
-  replace nbT := nbT X hX
-  rw [h1eq, h2eq] at nbT
-  have thm : ¬ ∃ (x : timeline κ n), x ∈ succs A T ∧ x ∈ preds B T := by
-    push Not
-    intro x xsuccA
-    unfold succs is_succ at xsuccA
-    simp only [Set.mem_setOf_eq] at xsuccA
-    rcases xsuccA with ⟨m, mgr, mthm⟩
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  B ∈ succs A τ → ∃ X, is_imm_succ X A τ := by
+  intro T A B Binsucc
+  unfold succs at Binsucc
+  simp only [Set.mem_setOf_eq] at Binsucc
+  rcases Binsucc with ⟨m, hm, mhm⟩
+  induction m generalizing B with
+  | zero =>
+    omega
+  | succ m ih =>
     cases m with
     | zero =>
-      omega
-    | succ m =>
-      cases m with
-      | zero =>
-        have temp := mthm.2
-        obtain ⟨w, hw, weq⟩ := temp
-        have tempnbT := ((nbT w hw).mp weq.1.symm).symm
-        rw [tempnbT] at weq
-        nth_rewrite 2 [weq.2] at irreflex
-        exact irreflex
-      | succ =>
-        rename_i k
-        have temp := mthm.2
-        have tempg := mthm.1
-        obtain ⟨w, hw, weq⟩ := temp
-        have succsx := SP0 T w x weq
-        unfold is_succ at hw
-        cases k with
-        | zero =>
-          have stemp := hw.2
-
-
+      exact ⟨B, mhm⟩
+    | succ k =>
+      rcases mhm with ⟨M, L, J⟩
+      exact ih L M J.1
 
 theorem SP19 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ → ∀ (A B : timeline κ n), (A ∈ ffld τ ∧ B ∈ ffld τ ∧ B ∈ succs A τ)
-    → succs A τ = succs B τ ∪ (succs A τ ∩ preds B τ) := by
-
+  valid_timeline τ →  ∀ (A B : timeline κ n), is_imm_succ B A τ →
+  succs A τ = succs B τ ∪ {B} := by
+  intro T vT A B immSucc
+  have isSucc := SP0 T A B immSucc
+  have fflds := SP3 T B A isSucc
+  have subb := SP16 T vT B A isSucc
+  simp only [Set.subset_def] at subb
+  simp only [Set.ext_iff, Set.union_def, Set.mem_setOf_eq, Set.mem_singleton_iff]
+  intro x
+  have transit := transitivity n T A B x
+  constructor
+  · intro hh
+    unfold succs at hh
+    simp only [Set.mem_setOf_eq] at hh
+    rcases hh with ⟨m, mg, succa⟩
+    induction m generalizing x with
+    | zero =>
+      omega
+    | succ m ih =>
+      cases m with
+      | zero =>
+        right
+        have eqr := SP15 T vT B x A
+        exact (eqr ⟨immSucc, succa⟩).symm
+      | succ k =>
+        rcases succa with ⟨M, L, J⟩
+        have temp := ih L
+        replace subb := subb L
+        have tt : B ∈ succs A T ∧ L ∈ succs B T → L ∈ succs A T := by
+          intro hp
+          exact subb hp.2
+        replace temp := temp tt M J.1
+        have LinS := SP0 T L x J.2
+        rcases temp with h1 | h2
+        left
+        exact transitivity n T B L x ⟨h1, LinS⟩
+        rw [h2] at LinS
+        left
+        exact LinS
+  · intro hor
+    rcases hor with ht | hy
+    exact transit ⟨isSucc, ht⟩
+    rw [hy.symm] at isSucc
+    exact isSucc
 
 theorem SP20 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ∀ (A B : timeline κ n),
+  is_imm_succ B A τ → succs A τ ∩ preds B τ = ∅ := by
+  sorry
+
+
+theorem SP21 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   (valid_timeline τ ∧ (ffld τ).Finite) → (∀ x y, is_imm_succ y x τ → (succs y τ).ncard + 1 = (succs x τ).ncard) := by
   intro T ⟨vT, finfld⟩ x y ysx
@@ -1253,12 +1271,15 @@ theorem SP20 {κ : Type T} {n : ℕ} :
               intro hp
               simp only [or_iff_not_imp_left]
               intro neq
+              sorry
+            sorry
+      sorry
     · intro eqq
       rw [eqq]
       exact irreflexy
 
 
-theorem SP21 {κ : Type T} {n : ℕ} :
+theorem SP22 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   valid_timeline τ → (∀ x, (preds x τ).Finite → ∃ z, preds z τ = ∅) := by
   intro T vT x finpreds
@@ -1267,6 +1288,9 @@ theorem SP21 {κ : Type T} {n : ℕ} :
     exact ⟨(preds x T).ncard, rfl⟩
   induction n with
   | zero =>
+    sorry
+  | succ =>
+    sorry
 
 
 theorem SPINFINITY {κ : Type T} {n : ℕ} :
@@ -1305,6 +1329,7 @@ theorem SPINFINITY {κ : Type T} {n : ℕ} :
     unfold preds at hy
     simp only [Set.mem_setOf_eq] at hy
     exact hy.1
+  sorry
 
   --simp only [ne_eq, Set.sep_and, Set.mem_inter_iff] at all
 
@@ -1355,17 +1380,22 @@ theorem FL1 {κ : Type T} {n : ℕ} :
     push Not
     intro contrahp
     simp only [Prod.exists, exists_eq_right, Prod.forall] at contrahp
+    sorry
   have hpnew : ∃ x ∈ T, ∀ p ∈ T, p.2 ≠ x.1 := by
+    sorry
+  sorry
 
 
 theorem FL2 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   valid_timeline τ → ∃ x, lasteles τ = {x} := by
+  sorry
 
 theorem FL3 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (valid_timeline ρ ∧ ρ ⊆ τ)
   → lasteles τ = lasteles ρ ∨ firsteles τ = firsteles ρ := by
+  sorry
 
 
 
@@ -1581,6 +1611,7 @@ theorem SUBT5 {κ : Type T} {n : ℕ} :
   ordered τ →
   ∀ (ρ : Set (timeline κ n × timeline κ n)),
   (ρ ⊆ τ ∧ ordered ρ ∧ ρ ≠ τ) → ordered (subt τ ρ) := by
+  sorry
 
 theorem SUBT6 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
@@ -1618,6 +1649,7 @@ theorem SUBT7 {κ : Type T} {n : ℕ} :
   have orderTy := orderT y.1 y.2 yinT
   let last := lasteles P
   let first := firsteles T
+  sorry
 
 
 theorem SUBT8 {κ : Type T} {n : ℕ} :
@@ -1644,6 +1676,8 @@ theorem SUBT8 {κ : Type T} {n : ℕ} :
   have PTexclusive := SUBT6 T P
   have contra : y ∈ succs x T → False := by
     intro ysuccx
+    sorry
+  sorry
 
 
 
@@ -1652,14 +1686,14 @@ theorem SUBT8 {κ : Type T} {n : ℕ} :
 /-
 !COUNT# : Theorems regarding the cardinality of timelines and of fields
 -/
-theorem COUNT0 {κ : Type T} {n : ℕ} :
+/-theorem COUNT0 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  τ
+  τ-/
 
 theorem COUNTN {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   valid_timeline τ → (ffld τ).ncard = 1 + τ.ncard := by
-
+  sorry
 
 
 /-
