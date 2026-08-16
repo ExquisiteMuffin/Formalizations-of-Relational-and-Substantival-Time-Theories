@@ -1201,7 +1201,6 @@ theorem SP20 {κ : Type T} {n : ℕ} :
   is_imm_succ B A τ → succs A τ ∩ preds B τ = ∅ := by
   sorry
 
-
 theorem SP21 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   (valid_timeline τ ∧ (ffld τ).Finite) → (∀ x y, is_imm_succ y x τ → (succs y τ).ncard + 1 = (succs x τ).ncard) := by
@@ -1277,7 +1276,7 @@ theorem SP21 {κ : Type T} {n : ℕ} :
     · intro eqq
       rw [eqq]
       exact irreflexy
-
+  sorry
 
 theorem SP22 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
@@ -1291,7 +1290,6 @@ theorem SP22 {κ : Type T} {n : ℕ} :
     sorry
   | succ =>
     sorry
-
 
 theorem SPINFINITY {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
