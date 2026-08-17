@@ -820,6 +820,17 @@ theorem SP3 {κ : Type T} {n : ℕ} :
       · exact new2
       · exact new1.2
 
+theorem valid_timeline_imp {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  B ∈ succs A τ → valid_timeline τ := by
+  intro T A B BsA
+  have temp := SP3 T B A BsA
+  unfold ffld order_set at temp
+  simp only [Set.mem_setOf_eq] at temp
+  rcases temp with ⟨thm, rest⟩
+  exact thm.1
+
 theorem SP4 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (A B : timeline κ n),
@@ -856,17 +867,73 @@ theorem SP4 {κ : Type T} {n : ℕ} :
     · exact False.elim (neq equ)
     · exact Bs
 
+theorem fundirreflexivity {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ∀ (B : timeline κ n), B ∉ preds B τ := by
+    intro T vT B
+    exact (not_iff_not.mpr (SP4 T B B vT)).mp (irreflexivity n T B)
+
+theorem fundtotality {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (B : timeline κ n),
+  B ∈ ffld τ → valid_timeline τ → ffld τ = succs B τ ∪ {B} ∪ preds B τ := by
+  intro T B BinF vT
+  simp only [Set.ext_iff]
+  intro x
+  have tot := totality n T x B
+  constructor
+  · intro hp1
+    replace tot := tot ⟨hp1, BinF, vT⟩
+    simp only [Set.union_singleton, Set.mem_union, Set.mem_insert_iff]
+    rcases tot with X | Y | Z
+    left
+    right
+    exact X
+    left
+    left
+    exact Y
+    right
+    exact ((SP4 T x B vT).mp Z)
+  · intro hp2
+    simp only [Set.union_singleton, Set.mem_union, Set.mem_insert_iff] at hp2
+    rcases hp2 with X | Y
+    rcases X with X1 | X2
+    rw [X1.symm] at BinF
+    exact BinF
+    exact (SP3 T x B X2).1
+    rw [(SP4 T x B vT).symm] at Y
+    exact (SP3 T B x Y).2
+
 theorem SP5 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (A B : timeline κ n),
-  valid_timeline τ → (B ∈ succs A τ ↔ B ∈ preds A (inv_timeline τ)) := by
-  sorry
+  (is_imm_succ B A τ → is_imm_succ A B (inv_timeline τ)) := by
+  intro T A B
+  unfold is_imm_succ
+  intro immSucc
+  refine ⟨F_INV1 T immSucc.1, ?_⟩
+  rcases immSucc.2 with ⟨X, Xin, hX⟩
+  have triv : (X.1, X.2) ∈ T := Xin
+  rw [hX.1, hX.2] at triv
+  have invininvT := (INV0 T (A, B)).mp triv
+  unfold inv_pair at invininvT
+  simp only at invininvT
+  simp only [Prod.exists, exists_eq_right_right, exists_eq_right]
+  exact invininvT
 
 theorem SP6 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n))
-  (B : timeline κ n),
-  (succs B τ) = ∅ → ∀ A ∈ ffld τ, A ∈ preds B τ := by
-  sorry
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  ∀ B ∈ ffld τ,
+  valid_timeline τ →
+  (succs B τ) = ∅ → ∀ A ∈ ffld τ, A ≠ B → A ∈ preds B τ := by
+  intro T B Binf vT empt A Ainf AneB
+  rw [Set.eq_empty_iff_forall_notMem] at empt
+  replace empt := empt A
+  have tot := totality n T A B
+  simp only [and_imp] at tot
+  replace tot := tot Ainf Binf vT
+  simp only [or_iff_not_imp_left] at tot
+  replace tot := tot empt AneB
+  exact (SP4 T A B vT).mp tot
 
 theorem SP7 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
@@ -1052,9 +1119,10 @@ theorem SP13 {κ : Type T} {n : ℕ} :
 
 theorem SP14 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ → (∀ x y, x ∈ succs y τ → (succs x τ ⊂ succs y τ)) := by
-  intro T vT x y xinP
+  (∀ x y, x ∈ succs y τ → (succs x τ ⊂ succs y τ)) := by
+  intro T x y xinP
   --rw [SP4 T y x vT] at xinP
+  have vT := valid_timeline_imp T y x xinP
   have transit := fun (A : timeline κ n) => transitivity n T y x A
   have irreflex := irreflexivity n T
   have eq1 := SP4 T x y vT
@@ -1084,9 +1152,9 @@ theorem SP15 {κ : Type T} {n : ℕ} :
 
 theorem SP16 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ → ∀ (A B : timeline κ n),
+  ∀ (A B : timeline κ n),
   A ∈ succs B τ → succs A τ ⊆ succs B τ := by
-    intro T vT A B hA
+    intro T A B hA
     simp only [Set.subset_def]
     intro x xinA
     have irreflex := irreflexivity n T x
@@ -1123,12 +1191,6 @@ theorem SP17 {κ : Type T} {n : ℕ} :
   · exact nclaim.1 Y
   · contradiction
 
-theorem fundirreflexivity {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ → ∀ (B : timeline κ n), B ∉ preds B τ := by
-    intro T vT B
-    exact (not_iff_not.mpr (SP4 T B B vT)).mp (irreflexivity n T B)
-
 theorem SP18 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (A B : timeline κ n),
@@ -1150,12 +1212,13 @@ theorem SP18 {κ : Type T} {n : ℕ} :
 
 theorem SP19 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ →  ∀ (A B : timeline κ n), is_imm_succ B A τ →
+  ∀ (A B : timeline κ n), is_imm_succ B A τ →
   succs A τ = succs B τ ∪ {B} := by
-  intro T vT A B immSucc
+  intro T A B immSucc
+  have vT := valid_timeline_imp T A B (SP0 T A B immSucc)
   have isSucc := SP0 T A B immSucc
   have fflds := SP3 T B A isSucc
-  have subb := SP16 T vT B A isSucc
+  have subb := SP16 T B A isSucc
   simp only [Set.subset_def] at subb
   simp only [Set.ext_iff, Set.union_def, Set.mem_setOf_eq, Set.mem_singleton_iff]
   intro x
@@ -1197,9 +1260,18 @@ theorem SP19 {κ : Type T} {n : ℕ} :
 
 theorem SP20 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ → ∀ (A B : timeline κ n),
+  ∀ (A B : timeline κ n),
   is_imm_succ B A τ → succs A τ ∩ preds B τ = ∅ := by
-  sorry
+  intro T A B immSuccB
+  have vT := valid_timeline_imp T A B (SP0 T A B immSuccB)
+  have claim := SP19 T A B immSuccB
+  have empt := SP8 T B
+  have irreflex := fundirreflexivity T vT B
+  rw [claim]
+  simp only [Set.union_inter_distrib_right]
+  rw [empt]
+  simp only [Set.empty_union, Set.singleton_inter_eq_empty]
+  exact irreflex
 
 theorem SP21 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
@@ -1290,6 +1362,127 @@ theorem SP22 {κ : Type T} {n : ℕ} :
     sorry
   | succ =>
     sorry
+
+theorem SP23 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (B : timeline κ n),
+  B ∈ ffld τ → valid_timeline τ →
+  succs B τ ∪ {B} ∪ preds B τ =
+  succs B (inv_timeline τ) ∪ {B} ∪ preds B (inv_timeline τ) := by
+  intro T B BinF vT
+  have totT := fundtotality T B BinF vT
+  have ffldeq := INV7 T vT
+  have BininvF : B ∈ ffld (inv_timeline T) := by
+    rw [ffldeq] at BinF
+    exact BinF
+  have vinvT := F_INV1 T vT
+  have totinvT := fundtotality (inv_timeline T) B BininvF vinvT
+  rw [ffldeq.symm] at totinvT
+  rw [totinvT] at totT
+  exact totT.symm
+
+theorem SP24 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  is_imm_succ B A τ → preds B τ = preds A τ  ∪ {A} := by
+  intro T A B BisA
+  have vT := valid_timeline_imp T A B (SP0 T A B BisA)
+  have claim := SP19 T A B BisA
+  have BsA := SP0 T A B BisA
+  have subb := SP16 T B A BsA
+  have totA := fundtotality T A (SP3 T B A BsA).2 vT
+  have totB := fundtotality T B (SP3 T B A BsA).1 vT
+  rw [claim.symm] at totB
+  have inter := SP8 T B
+  have subpred := SP17 T vT B A (SP3 T B A BsA).1 subb
+  have subbb : succs A T ∩ preds B T = ∅ := by
+    rw [claim]
+    simp only [Set.inter_def, Set.empty_def, Set.ext_iff, Set.mem_setOf_eq, Set.union_def]
+    intro y
+    constructor
+    · intro h
+      rcases h.1 with h1 | h2
+      simp only [Set.inter_def, Set.empty_def, Set.ext_iff, Set.mem_setOf_eq] at inter
+      replace inter := inter y
+      exact inter.mp ⟨h1, h.2⟩
+      simp only [Set.mem_singleton_iff] at h2
+      rw [h2] at h
+      exact (fundirreflexivity T vT B) h.2
+    · intro hf
+      exact and_iff_not_or_not.mpr fun a ↦ hf
+  simp only [Set.subset_def] at subpred
+  have subp : preds A T ∪ {A} ⊆ preds B T := by
+    simp only [Set.subset_def, Set.mem_union, Set.mem_singleton_iff]
+    intro x hAx
+    rcases hAx with M | J
+    exact subpred x M
+    rw [SP4 T A B vT, J.symm] at BsA
+    exact BsA
+  have new : succs A T ∩ (preds A T ∪ {A}) = ∅ := by
+    simp only [Set.inter_def, Set.empty_def, Set.ext_iff, Set.mem_setOf_eq, Set.union_def]
+    intro y
+    simp only [Set.inter_def, Set.empty_def, Set.ext_iff, Set.mem_setOf_eq] at inter
+    replace inter := inter y
+    simp only [Set.union_def, Set.subset_def, Set.mem_setOf_eq] at subp
+    replace subp := subp y
+    constructor
+    · intro h
+      replace subp := subp h.2
+      rw [claim] at h
+      simp only [Set.union_def, Set.mem_setOf_eq, Set.mem_singleton_iff] at h
+      rcases h.1 with h1 | h2
+      exact inter.mp ⟨h1, subp⟩
+      rw [h2] at subp
+      exact (fundirreflexivity T vT B) subp
+    · intro hf
+      exact and_iff_not_or_not.mpr fun a ↦ hf
+  rw [totB] at totA
+  have dB : Disjoint (preds B T) (succs A T) := by
+    simp only [Set.inter_comm] at subbb
+    exact Set.disjoint_iff_inter_eq_empty.mpr subbb
+  have dA : Disjoint (preds A T ∪ {A}) (succs A T) := by
+    rw [Set.inter_comm (succs A T) (preds A T ∪ {A})] at new
+    exact Set.disjoint_iff_inter_eq_empty.mpr new
+  have equ : (succs A T ∪ preds B T) \ succs A T =
+              (succs A T ∪ {A} ∪ preds A T) \ succs A T
+      := congr_arg (· \ succs A T) totA
+  simp only [Set.union_sdiff_left] at equ
+  rw [Set.union_comm] at equ
+  rw [Set.union_comm (succs A T) {A}] at equ
+  rw [← Set.union_assoc] at equ
+  simp only [Set.union_sdiff_right] at equ
+  rw [dB.sdiff_eq_left, dA.sdiff_eq_left] at equ
+  exact equ
+
+theorem SP25 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  (B ∈ succs A τ → A ∈ succs B (inv_timeline τ)) := by
+  intro T A B BinS
+  have vT := valid_timeline_imp T A B BinS
+  have invvT := F_INV1 T vT
+  rcases SP18 T A B BinS with ⟨X, XisA⟩
+  have XsA := SP0 T A X XisA
+  have AisX := SP5 T A X XisA
+  have AsX := SP0 (inv_timeline T) X A AisX
+  have set1 := SP19 (inv_timeline T) X A AisX
+  have set2 := SP19 T A X XisA
+  have toteq := SP23 T X (SP3 T X A XsA).1 vT
+  have toteqn := toteq
+  rw [set2.symm] at toteqn
+  --have claim :
+  sorry
+
+theorem SP26 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  (B ∈ succs A (inv_timeline τ) ↔ A ∈ succs B τ) := by
+  intro T A B
+  constructor
+  · intro hp
+    have first := SP25 (inv_timeline T) A B hp
+    rw [F_INV0 T] at first
+    exact first
+  · exact SP25 T B A
 
 theorem SPINFINITY {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
