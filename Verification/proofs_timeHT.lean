@@ -44,6 +44,14 @@ theorem fundnonbranching {κ : Type T} {n : ℕ} :
   replace nbT := (nbT q qinT p pinT)
   exact (not_iff_not.mpr nbT).symm
 
+theorem validnonbranching {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → nonbranching τ := by
+  intro T vT
+  unfold valid_timeline at vT
+  rcases vT with ⟨first, last⟩
+  exact first
+
 /-
 !SING# : Theorems regarding single timelines
 SING0 : The cardinality of a timeline that is single is exact 1
@@ -1280,8 +1288,8 @@ theorem SP21 {κ : Type T} {n : ℕ} :
   obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (succs x T).ncard := by
     exact ⟨(succs x T).ncard, rfl⟩
   have yssx := SP0 T x y ysx
-  have claim := SP14 T vT y x yssx
-  have extclaim := SP16 T vT y x yssx
+  have claim := SP14 T y x yssx
+  have extclaim := SP16 T y x yssx
   replace extclaim := SP17 T vT y x (SP3 T y x yssx).1 extclaim
   have irreflexy := irreflexivity n T y
   have irreflexx := irreflexivity n T x
@@ -1454,10 +1462,14 @@ theorem SP24 {κ : Type T} {n : ℕ} :
   exact equ
 
 theorem SP25 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
-  ∀ A ∈ ffld τ, valid_timeline τ → succs A τ ∩ succs A (inv_timeline τ) = ∅ := by
-
-  sorry
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (A B : timeline κ n),
+  is_imm_succ B A τ → (A, B) ∈ τ := by
+  intro T A B BisA
+  unfold is_imm_succ at BisA
+  rcases BisA.2 with ⟨X, XinT, hX⟩
+  have claim : (X.1, X.2) ∈ T := XinT
+  rw [hX.1, hX.2] at claim
+  exact claim
 
 theorem SP26 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
@@ -1470,77 +1482,29 @@ theorem SP26 {κ : Type T} {n : ℕ} :
   have XsA := SP0 T A X XisA
   have AisX := SP5 T A X XisA
   have AsX := SP0 (inv_timeline T) X A AisX
-  have set1 := SP19 (inv_timeline T) X A AisX
-  have set2 := SP19 T A X XisA
-  have toteq := SP23 T X (SP3 T X A XsA).1 vT
-  have toteqn := toteq
-  have finaleq := toteq
-  rw [set2.symm] at toteqn
-  rw [Set.union_right_comm] at toteqn
-  simp only [Set.union_assoc] at toteqn
-  rw [(SP24 (inv_timeline T) X A AisX).symm] at toteqn
-  have sub1 := SP16 T X A XsA
-  have sub2 := SP16 (inv_timeline T) A X AsX
-  have nott1 := SP8 T A
-  have nott2 := SP8 (inv_timeline T) X
-  have nott3 := SP8 T X
-  have trivv : succs A T ⊆ succs A T := by
-    rfl
-  have claim1 : succs X T ∩ preds A T = ∅ := by
-    have step := Set.inter_subset_inter_left (preds A T) (sub1)
-    rw [nott1] at step
-    simp only [Set.subset_empty_iff.symm]
-    exact step
-  have claim2 : succs A (inv_timeline T) ∩ preds X (inv_timeline T) = ∅ := by
-    have step := Set.inter_subset_inter_left (preds X (inv_timeline T)) (sub2)
-    rw [nott2] at step
-    simp only [Set.subset_empty_iff.symm]
-    exact step
-  have dA := Set.disjoint_iff_inter_eq_empty.mpr nott1
-  have dX := Set.disjoint_iff_inter_eq_empty.mpr nott2
-  have dX1 := Set.disjoint_iff_inter_eq_empty.mpr nott3
-  have equ : (succs X T ∪ {X} ∪ preds X T) \ {X}
-              = (succs X (inv_timeline T) ∪ {X} ∪ preds X (inv_timeline T)) \ {X}
-    := congr_arg (· \ {X}) (toteq)
-  rw [Set.union_assoc, Set.union_comm {X} (preds X T), ← Set.union_assoc] at equ
-  simp only [Set.union_sdiff_right] at equ
-  rw [Set.union_assoc, Set.union_comm {X} (preds X (inv_timeline T)), ← Set.union_assoc] at equ
-  simp only [Set.union_sdiff_right] at equ
-  have disj1 : (succs X T ∪ preds X T) ∩ {X} = ∅ := by
-    simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq,
-              Set.mem_inter_iff, Set.mem_union, Set.mem_singleton_iff]
-    intro x
-    constructor
-    · intro hp1
-      rcases hp1.1 with su | pr
-      rw [hp1.2] at su
-      exact (irreflexivity n T X) su
-      rw [hp1.2] at pr
-      exact (fundirreflexivity T vT X) pr
-    · intro hp2
-      contradiction
-  have disj2 : (succs X (inv_timeline T) ∪ preds X (inv_timeline T)) ∩ {X} = ∅ := by
-    simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq,
-              Set.mem_inter_iff, Set.mem_union, Set.mem_singleton_iff]
-    intro x
-    constructor
-    · intro hp1
-      rcases hp1.1 with su | pr
-      rw [hp1.2] at su
-      exact (irreflexivity n (inv_timeline T) X) su
-      rw [hp1.2] at pr
-      exact (fundirreflexivity (inv_timeline T) invvT X) pr
-    · intro hp2
-      contradiction
-  have disj11 := Set.disjoint_iff_inter_eq_empty.mpr disj1
-  have disj21 := Set.disjoint_iff_inter_eq_empty.mpr disj2
-  rw [disj11.sdiff_eq_left, disj21.sdiff_eq_left] at equ
-  have equ : (succs X T ∪ preds X T) \ (preds X T )
-              = (succs X (inv_timeline T) ∪ preds X (inv_timeline T)) \ (preds X T)
-    := congr_arg (· \ (preds X T)) (equ)
-  simp only [Set.union_sdiff_right, dX1.sdiff_eq_left] at equ
-  --have claim :
-  sorry
+  have pairin : (A, X) ∈ T := SP25 T A X XisA
+  unfold succs at BinS
+  rcases BinS with ⟨m, mgz, hm⟩
+  induction m generalizing B with
+  | zero =>
+    omega
+  | succ m ih =>
+    cases m with
+    | zero =>
+      rcases hm.2 with ⟨R, hR⟩
+      have tem := validnonbranching T vT
+      unfold nonbranching at tem
+      replace tem := (tem R hR.1 (A, X) pairin).mp hR.2.1
+      simp only at tem
+      rw [tem] at hR
+      rw [hR.2.2.symm]
+      exact AsX
+    | succ k =>
+      rcases hm with ⟨M, L, J⟩
+      have temp := ih L M J.1
+      have inv := SP5 T L B J.2
+      have BsL := SP0 (inv_timeline T) B L inv
+      exact transitivity n (inv_timeline T) B L A ⟨BsL, temp⟩
 
 theorem SP27 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))

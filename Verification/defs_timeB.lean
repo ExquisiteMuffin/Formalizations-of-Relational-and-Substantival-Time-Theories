@@ -14,14 +14,12 @@ open HofT
 
 universe T
 
-def empt {κ : Type T} {n : ℕ} : timeline κ n := ∅
-
 def ext_pair {κ : Type T} {n : ℕ} (τ : (timeline κ n × timeline κ n)) :
     (timeline κ n × timeline κ n × timeline κ n)
   :=
 
 def ext_timeline {κ : Type T} {n : ℕ} (τ : Set (timeline κ n × timeline κ n)) :
     Set (timeline κ n × timeline κ n × timeline κ n)
-  := {p | p.3 = empt ∧ ∃ q ∈ τ, p.1 = q.1 ∧ p.2 = q.2}
+  := {p | p.2.2 = ∅ ∧ ∃ q ∈ τ, p.1 = q.1 ∧ p.2.1 = q.2}
 
 end Basis

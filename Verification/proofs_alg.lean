@@ -6,5 +6,5 @@ open HofT
 
 universe T
 
-axiom idem {κ : Type T} :
-∀ τ,
+/-axiom idem {κ : Type T} :
+∀ τ,-/
