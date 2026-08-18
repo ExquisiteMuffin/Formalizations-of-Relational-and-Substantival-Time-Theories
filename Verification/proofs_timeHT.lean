@@ -1454,6 +1454,12 @@ theorem SP24 {κ : Type T} {n : ℕ} :
   exact equ
 
 theorem SP25 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  ∀ A ∈ ffld τ, valid_timeline τ → succs A τ ∩ succs A (inv_timeline τ) = ∅ := by
+
+  sorry
+
+theorem SP26 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (A B : timeline κ n),
   (B ∈ succs A τ → A ∈ succs B (inv_timeline τ)) := by
@@ -1468,21 +1474,85 @@ theorem SP25 {κ : Type T} {n : ℕ} :
   have set2 := SP19 T A X XisA
   have toteq := SP23 T X (SP3 T X A XsA).1 vT
   have toteqn := toteq
+  have finaleq := toteq
   rw [set2.symm] at toteqn
+  rw [Set.union_right_comm] at toteqn
+  simp only [Set.union_assoc] at toteqn
+  rw [(SP24 (inv_timeline T) X A AisX).symm] at toteqn
+  have sub1 := SP16 T X A XsA
+  have sub2 := SP16 (inv_timeline T) A X AsX
+  have nott1 := SP8 T A
+  have nott2 := SP8 (inv_timeline T) X
+  have nott3 := SP8 T X
+  have trivv : succs A T ⊆ succs A T := by
+    rfl
+  have claim1 : succs X T ∩ preds A T = ∅ := by
+    have step := Set.inter_subset_inter_left (preds A T) (sub1)
+    rw [nott1] at step
+    simp only [Set.subset_empty_iff.symm]
+    exact step
+  have claim2 : succs A (inv_timeline T) ∩ preds X (inv_timeline T) = ∅ := by
+    have step := Set.inter_subset_inter_left (preds X (inv_timeline T)) (sub2)
+    rw [nott2] at step
+    simp only [Set.subset_empty_iff.symm]
+    exact step
+  have dA := Set.disjoint_iff_inter_eq_empty.mpr nott1
+  have dX := Set.disjoint_iff_inter_eq_empty.mpr nott2
+  have dX1 := Set.disjoint_iff_inter_eq_empty.mpr nott3
+  have equ : (succs X T ∪ {X} ∪ preds X T) \ {X}
+              = (succs X (inv_timeline T) ∪ {X} ∪ preds X (inv_timeline T)) \ {X}
+    := congr_arg (· \ {X}) (toteq)
+  rw [Set.union_assoc, Set.union_comm {X} (preds X T), ← Set.union_assoc] at equ
+  simp only [Set.union_sdiff_right] at equ
+  rw [Set.union_assoc, Set.union_comm {X} (preds X (inv_timeline T)), ← Set.union_assoc] at equ
+  simp only [Set.union_sdiff_right] at equ
+  have disj1 : (succs X T ∪ preds X T) ∩ {X} = ∅ := by
+    simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq,
+              Set.mem_inter_iff, Set.mem_union, Set.mem_singleton_iff]
+    intro x
+    constructor
+    · intro hp1
+      rcases hp1.1 with su | pr
+      rw [hp1.2] at su
+      exact (irreflexivity n T X) su
+      rw [hp1.2] at pr
+      exact (fundirreflexivity T vT X) pr
+    · intro hp2
+      contradiction
+  have disj2 : (succs X (inv_timeline T) ∪ preds X (inv_timeline T)) ∩ {X} = ∅ := by
+    simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq,
+              Set.mem_inter_iff, Set.mem_union, Set.mem_singleton_iff]
+    intro x
+    constructor
+    · intro hp1
+      rcases hp1.1 with su | pr
+      rw [hp1.2] at su
+      exact (irreflexivity n (inv_timeline T) X) su
+      rw [hp1.2] at pr
+      exact (fundirreflexivity (inv_timeline T) invvT X) pr
+    · intro hp2
+      contradiction
+  have disj11 := Set.disjoint_iff_inter_eq_empty.mpr disj1
+  have disj21 := Set.disjoint_iff_inter_eq_empty.mpr disj2
+  rw [disj11.sdiff_eq_left, disj21.sdiff_eq_left] at equ
+  have equ : (succs X T ∪ preds X T) \ (preds X T )
+              = (succs X (inv_timeline T) ∪ preds X (inv_timeline T)) \ (preds X T)
+    := congr_arg (· \ (preds X T)) (equ)
+  simp only [Set.union_sdiff_right, dX1.sdiff_eq_left] at equ
   --have claim :
   sorry
 
-theorem SP26 {κ : Type T} {n : ℕ} :
+theorem SP27 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n))
   (A B : timeline κ n),
   (B ∈ succs A (inv_timeline τ) ↔ A ∈ succs B τ) := by
   intro T A B
   constructor
   · intro hp
-    have first := SP25 (inv_timeline T) A B hp
+    have first := SP26 (inv_timeline T) A B hp
     rw [F_INV0 T] at first
     exact first
-  · exact SP25 T B A
+  · exact SP26 T B A
 
 theorem SPINFINITY {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
@@ -1858,8 +1928,8 @@ theorem SUBT8 {κ : Type T} {n : ℕ} :
   specialize ffld_subtTP y ffldy
   have ffldxT := ffld_subPT x ffldx
   have pinT := subPT p pinP
-  have xsucc := SP6 T p.1 empt x ffldxT
-  have ysucc := SP6 T p.1 empt y ffld_subtTP
+  --have xsucc := SP6 T p.1 empt x ffldxT
+  --have ysucc := SP6 T p.1 empt y ffld_subtTP
   have tot := totality n T x y ⟨ffldxT, ffld_subtTP, vT⟩
   simp only [xney, false_or] at tot
   have temp := SP4 T y x vT
