@@ -1218,6 +1218,14 @@ theorem SP18 {κ : Type T} {n : ℕ} :
       rcases mhm with ⟨M, L, J⟩
       exact ih L M J.1
 
+theorem valid_timeline_imp_set1 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (A : timeline κ n),
+  (succs A τ).Nonempty → valid_timeline τ := by
+  intro T A nemptySA
+  simp only [Set.nonempty_def] at nemptySA
+  rcases nemptySA with ⟨x, xinSA⟩
+  exact valid_timeline_imp T A x xinSA
+
 theorem SP19 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   ∀ (A B : timeline κ n), is_imm_succ B A τ →
@@ -1359,17 +1367,13 @@ theorem SP21 {κ : Type T} {n : ℕ} :
   sorry
 
 theorem SP22 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ → (∀ x, (preds x τ).Finite → ∃ z, preds z τ = ∅) := by
-  intro T vT x finpreds
-  have subsetcl := fun (y : timeline κ n) => SP13 T vT y x
-  obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (preds x T).ncard := by
-    exact ⟨(preds x T).ncard, rfl⟩
-  induction n with
-  | zero =>
-    sorry
-  | succ =>
-    sorry
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (A B : timeline κ n),
+  τ.Finite → is_imm_succ B A τ → (succs A τ).ncard = (succs B τ).ncard + 1 := by
+  intro T A B Tfin BisA
+  obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (succs A T).ncard := by
+    exact ⟨(succs A T).ncard, rfl⟩
+  sorry
+
 
 theorem SP23 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (B : timeline κ n),
@@ -1517,6 +1521,86 @@ theorem SP27 {κ : Type T} {n : ℕ} :
     rw [F_INV0 T] at first
     exact first
   · exact SP26 T B A
+
+theorem SP28 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (A : timeline κ n),
+  valid_timeline τ → A ∈ ffld τ → succs A τ ∩ {A} = ∅ := by
+  intro T A vT Ainf
+  simp only [Set.inter_singleton_eq_empty]
+  exact irreflexivity n T A
+
+theorem SP29 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (A : timeline κ n),
+  valid_timeline τ → A ∈ ffld τ → preds A τ ∩ {A} = ∅ := by
+  intro T A vT Ainf
+  simp only [Set.inter_singleton_eq_empty]
+  exact fundirreflexivity T vT A
+
+theorem SP30 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  τ.Finite → (ffld τ).Finite := by
+  intro T Tfin
+  unfold ffld order_set
+  simp only [Set.mem_setOf_eq, Prod.exists]
+  refine ((Tfin.image Prod.fst).union (Tfin.image Prod.snd)).subset ?_
+  intro s hs
+  rcases hs with ⟨_, a, b, hab, ha | hb⟩
+  · exact Or.inl ⟨(a, b), hab, ha⟩
+  · exact Or.inr ⟨(a, b), hab, hb⟩
+
+theorem SP31 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (A B : timeline κ n),
+  is_imm_succ B A τ → τ.Finite → (succs A τ).ncard = (succs B τ).ncard + 1 := by
+  intro T A B BisA Tfin
+  have claim := SP19 T A B BisA
+  have finfld := SP30 T Tfin
+  have subbstep := fun (X : timeline κ n) => SP3 T X B
+  have subb : ∀ X ∈ succs B T, X ∈ ffld T := by
+    intro X Xin
+    exact (subbstep X Xin).1
+  rw [Set.subset_def.symm] at subb
+  have finsuccB : (succs B T).Finite := finfld.subset subb
+  obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (succs A T).ncard := by
+    exact ⟨(succs A T).ncard, rfl⟩
+  have vT := valid_timeline_imp T A B (SP0 T A B BisA)
+  have disj := SP28 T B vT (SP3 T B A (SP0 T A B BisA)).1
+  have bcard : ({B} : Set (timeline κ n)).ncard = 1 := by
+    simp only [Set.ncard_singleton]
+  have rdisj : Disjoint (succs B T) ({B}) := Set.disjoint_iff_inter_eq_empty.mpr disj
+  have equ : (succs A T).ncard = (succs B T ∪ {B}).ncard := congr_arg Set.ncard claim
+  have sbcard : (succs B T ∪ {B}).ncard = (succs B T).ncard + 1 := by
+    rw [Set.ncard_union_eq rdisj
+    (hs := finsuccB)
+    (ht := Set.finite_singleton B), bcard]
+  rw [equ.symm] at sbcard
+  exact sbcard
+
+theorem SP32 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (A : timeline κ n),
+  A ∈ ffld τ → valid_timeline τ → τ.Finite → (ffld τ).ncard = (succs A τ).ncard + 1 + (preds A τ).ncard := by
+  intro T A Ainf vT Tfin
+  obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (succs A T).ncard := by
+    exact ⟨(succs A T).ncard, rfl⟩
+  have tot := fundtotality T A Ainf vT
+  sorry
+
+theorem SP33 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
+  valid_timeline τ → ((preds x τ).Finite → ∃ z, preds z τ = ∅) := by
+  intro T x vT finpreds
+  have subsetcl := fun (y : timeline κ n) => SP13 T vT y x
+  obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (preds x T).ncard := by
+    exact ⟨(preds x T).ncard, rfl⟩
+  induction m generalizing x with
+  | zero =>
+    replace hm := hm.symm
+    simp only [Set.ncard_eq_zero finpreds] at hm
+    exact ⟨x, hm⟩
+  | succ k ih =>
+    replace hm := hm.symm
+    have temp := ih
+    --Use immediate successors
+    sorry
 
 theorem SPINFINITY {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
@@ -1917,8 +2001,70 @@ theorem SUBT8 {κ : Type T} {n : ℕ} :
 
 theorem COUNTN {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ → (ffld τ).ncard = 1 + τ.ncard := by
-  sorry
+  valid_timeline τ → (∃ m > 0, m = τ.ncard) → (ffld τ).ncard = τ.ncard + 1 := by
+  intro T vT ⟨m, mgz, hm⟩
+  induction m generalizing T with
+  | zero =>
+    omega
+  | succ m ih =>
+    cases m with
+    | zero =>
+      have hme := hm.symm
+      simp only [zero_add, Set.ncard_eq_one, Prod.exists] at hme
+      rw [hm.symm]
+      simp only [Nat.reduceAdd]
+      rcases hme with ⟨a, b, hp⟩
+      unfold ffld
+      have claim := SP9 T vT
+      simp only [Prod.forall] at claim
+      have belT : (a, b) ∈ T := by
+        rw [hp]
+        rfl
+      replace claim := claim a b belT
+      have acard : ({a} : Set (timeline κ n)).ncard = 1 := Set.ncard_singleton a
+      have bcard : ({b} : Set (timeline κ n)).ncard = 1 := Set.ncard_singleton b
+      have aneb : ({a} : Set (timeline κ n)) ∩ ({b} : Set (timeline κ n)) = ∅ := by
+        simp only [Set.empty_def, Set.ext_iff, Set.mem_inter_iff, Set.mem_singleton_iff, Set.mem_setOf_eq]
+        intro x
+        constructor
+        · intro h1
+          rw [h1.1] at h1
+          exact claim h1.2
+        · intro h2
+          contradiction
+      have adisjb : Disjoint ({a} : Set (timeline κ n)) ({b} : Set (timeline κ n))
+        := Set.disjoint_iff_inter_eq_empty.mpr aneb
+      have cardab : (({a} : Set (timeline κ n)) ∪ ({b} : Set (timeline κ n))).ncard = 2 := by
+        rw [Set.ncard_union_eq adisjb, acard, bcard]
+      have sset : ffld T = {a} ∪ {b} := by
+        unfold ffld order_set
+        simp only [Set.ext_iff, Set.mem_setOf_eq, Set.mem_union, Set.mem_singleton_iff]
+        intro x
+        constructor
+        · intro hp1
+          rcases hp1.2 with ⟨q, qinT, hq⟩
+          rw [hp] at qinT
+          simp only [Set.mem_singleton_iff,  Prod.eq_iff_fst_eq_snd_eq] at qinT
+          rw [qinT.1, qinT.2] at hq
+          rcases hq with hq1 | hq2
+          left
+          exact hq1.symm
+          right
+          exact hq2.symm
+        · intro hp2
+          refine ⟨vT, ?_⟩
+          simp only [Prod.exists]
+          refine ⟨a, b, belT, ?_⟩
+          rcases hp2 with hp21 | hp22
+          left
+          exact hp21.symm
+          right
+          exact hp22.symm
+      rw [sset.symm] at cardab
+      unfold ffld at cardab
+      exact cardab
+    | succ k =>
+      sorry
 
 
 /-
