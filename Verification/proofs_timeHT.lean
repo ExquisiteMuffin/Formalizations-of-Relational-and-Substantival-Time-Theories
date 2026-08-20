@@ -1623,6 +1623,39 @@ theorem SP31 {κ : Type T} {n : ℕ} :
   rw [equ.symm] at sbcard
   exact sbcard
 
+theorem SP31R {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (A B : timeline κ n),
+  is_imm_succ B A τ → τ.Finite → (preds B τ).ncard = (preds A τ).ncard + 1 := by
+  intro T A B BisA finT
+  have newset := SP24 T A B BisA
+  have finffld := SP30 T finT
+  have vT := valid_timeline_imp T A B (SP0 T A B BisA)
+  have ABinf := (SP3 T B A (SP0 T A B BisA))
+  have disj : Disjoint (preds A T) {A} := Set.disjoint_iff_inter_eq_empty.mpr (SP29 T A vT ABinf.2)
+  have totB := (fundtotality T B ABinf.1 vT)
+  have subbB : preds B T ⊆ ffld T := by
+    rw [totB]
+    exact Set.subset_union_right
+  have totA := (fundtotality T A ABinf.2 vT)
+  have subbA : preds A T ⊆ ffld T := by
+    rw [totA]
+    exact Set.subset_union_right
+  have Acard : ({A} : Set (timeline κ n)).ncard = 1 := by
+    exact Set.ncard_singleton A
+  have finPredsB : (preds B T).Finite := by
+    exact Set.Finite.subset finffld subbB
+  have finPredsA : (preds A T).Finite := by
+    exact Set.Finite.subset finffld subbA
+  have finA : ({A} : Set (timeline κ n)).Finite := by
+    exact Set.finite_singleton A
+  have eqcard : (preds B T).ncard = (preds A T ∪ {A}).ncard :=
+    congr_arg Set.ncard newset
+  have equ : (preds A T ∪ {A}).ncard = (preds A T).ncard +
+                ({A} : Set (timeline κ n)).ncard := by
+    exact Set.ncard_union_eq disj finPredsA finA
+  rw [equ, Acard] at eqcard
+  exact eqcard
+
 theorem SP32 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (A : timeline κ n),
   A ∈ ffld τ → τ.Finite → (ffld τ).ncard = (succs A τ).ncard + 1 + (preds A τ).ncard := by
@@ -1663,10 +1696,43 @@ theorem SP34 {κ : Type T} {n : ℕ} :
   have xsuy := (SP4RR T y x).mpr ypredx
   exact SP33 T y x xsuy
 
-theorem SP35 {κ : Type T} {n : ℕ} :
+theorem SP34R {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
-  valid_timeline τ → ((preds x τ).Finite → ∃ z, preds z τ = ∅) := by
-  intro T x vT finpreds
+  (preds x τ).Nonempty → ∃ z, is_imm_succ x z τ := by
+  intro T x nemptyP
+  simp only [Set.nonempty_def] at nemptyP
+  rcases nemptyP with ⟨y, hy⟩
+  exact SP34 T x y hy
+
+theorem SP35 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (A B : timeline κ n),
+  is_imm_succ B A τ → (preds B τ).Finite → (preds B τ).ncard = (preds A τ).ncard + 1 := by
+  intro T A B BisA finPredsB
+  have newset := SP24 T A B BisA
+  have vT := valid_timeline_imp T A B (SP0 T A B BisA)
+  have succ := SP0 T A B BisA
+  have ABinf := (SP3 T B A (SP0 T A B BisA))
+  have disj : Disjoint (preds A T) {A} := Set.disjoint_iff_inter_eq_empty.mpr (SP29 T A vT ABinf.2)
+  have temp := SP16 T B A succ
+  have subbA := SP17 T vT B A ABinf.1 temp
+  have Acard : ({A} : Set (timeline κ n)).ncard = 1 := by
+    exact Set.ncard_singleton A
+  have finPredsA : (preds A T).Finite := by
+    exact Set.Finite.subset finPredsB subbA
+  have finA : ({A} : Set (timeline κ n)).Finite := by
+    exact Set.finite_singleton A
+  have eqcard : (preds B T).ncard = (preds A T ∪ {A}).ncard :=
+    congr_arg Set.ncard newset
+  have equ : (preds A T ∪ {A}).ncard = (preds A T).ncard +
+                ({A} : Set (timeline κ n)).ncard := by
+    exact Set.ncard_union_eq disj finPredsA finA
+  rw [equ, Acard] at eqcard
+  exact eqcard
+
+theorem SP36 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)), ∀ x ∈ ffld τ,
+  valid_timeline τ → ((preds x τ).Finite → ∃ z, preds z τ = ∅ ∧ z ∈ ffld τ) := by
+  intro T x xinfld vT finpreds
   have subsetcl := fun (y : timeline κ n) => SP13 T vT y x
   obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (preds x T).ncard := by
     exact ⟨(preds x T).ncard, rfl⟩
@@ -1674,49 +1740,95 @@ theorem SP35 {κ : Type T} {n : ℕ} :
   | zero =>
     replace hm := hm.symm
     simp only [Set.ncard_eq_zero finpreds] at hm
-    exact ⟨x, hm⟩
+    exact ⟨x, hm, xinfld⟩
   | succ k ih =>
     replace hm := hm.symm
     have temp := ih
-    --Use immediate successors
-    sorry
+    have o : 0 < k + 1 :=
+      by omega
+    rw [hm.symm] at o
+    have nemptyP : (preds x T).Nonempty := by
+      exact (Set.natCard_pos finpreds).mp o
+    have exi := SP34R T x nemptyP
+    rcases exi with ⟨Z, hZ⟩
+    have xsZ := SP0 T Z x hZ
+    have claim1 := SP35 T Z x hZ finpreds
+    have claim2 : (preds Z T).ncard = k := by
+      rw [hm] at claim1
+      exact Eq.symm (Nat.add_right_cancel claim1)
+    replace claim2 := claim2.symm
+    have subb := SP16 T x Z xsZ
+    have fsubb := SP17 T vT x Z (SP3 T x Z xsZ).1 subb
+    have finPredsZ : (preds Z T).Finite := by
+      exact Set.Finite.subset finpreds fsubb
+    have tt := fun (y : timeline κ n) => SP13 T vT y Z
+    have Zinffld := (SP3 T x Z xsZ).2
+    have test := ih Z Zinffld finPredsZ tt claim2
+    exact test
+
+theorem valid_timeline_imp_set2 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
+  (preds x τ).Nonempty → valid_timeline τ := by
+  intro T x nempty
+  rcases nempty with ⟨y , hy⟩
+  exact valid_timeline_imp_preds T x y hy
+
+theorem SP3R {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x y : timeline κ n),
+  x ∈ preds y τ → x ∈ ffld τ ∧ y ∈ ffld τ := by
+  intro T x y xpy
+  exact (SP3 T y x ((SP4RR T x y).symm.mp xpy)).symm
+
+theorem SP36R {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
+  ((preds x τ).Nonempty → (preds x τ).Finite → ∃ z, preds z τ = ∅ ∧ z ∈ ffld τ) := by
+  intro T x nempty finpreds
+  have vT := valid_timeline_imp_set2 T x nempty
+  rcases nempty with ⟨z, hz⟩
+  have f := (SP4RR T z x).symm.mp hz
+  exact SP36 T x (SP3R T z x hz).2 vT finpreds
+
+theorem SP37 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)), ∀ x ∈ ffld τ,
+  preds x τ ⊆ ffld τ := by
+  intro T x xinf
+  have vT : valid_timeline T := by
+    unfold ffld order_set at xinf
+    simp only [Set.mem_setOf_eq] at xinf
+    exact xinf.1
+  have tot := fundtotality T x xinf vT
+  rw [tot]
+  simp only [Set.subset_union_right]
+
+theorem SP38 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)), ∀ x ∈ ffld τ,
+  (ffld τ).Finite → (preds x τ).Finite := by
+  intro T x xin finffld
+  have subb := SP37 T x xin
+  exact Set.Finite.subset finffld subb
 
 theorem SPINFINITY {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  (valid_timeline τ ∧ (∀ x ∈ ffld τ, ∃ y, y ∈ preds x τ)) → ¬ (τ.Finite) := by
-  unfold ffld order_set
-  intro T ⟨⟨nbT, orderT, sorderT, nemptyT⟩, all⟩
-  --unfold preds at all
-  simp only [Set.mem_setOf_eq, and_imp] at all
-  have transit := transitivity n T
-  have irreflex := irreflexivity n T
-  have infin := SP12 T ⟨nbT, orderT, sorderT, nemptyT⟩
-  have infins := SP13 T ⟨nbT, orderT, sorderT, nemptyT⟩
-  replace all := (fun (vT : valid_timeline T) (x : timeline κ n) => all x vT) ⟨nbT, orderT, sorderT, nemptyT⟩
-  have claim : ∀ x ∈ ffld T, (preds x T).Nonempty := by
-    intro x xinffld
-    unfold ffld at xinffld
-    simp only [Set.mem_setOf_eq] at xinffld
-    have nclaim := all x xinffld.2
-    exact nclaim
-  intro hfin
-  have hffld : (ffld T).Finite := by
-    have hfst : (Prod.fst '' T).Finite := hfin.image Prod.fst
-    have hsnd : (Prod.snd '' T).Finite := hfin.image Prod.snd
-    apply (hfst.union hsnd).subset
-    intro x hx
-    rcases hx with ⟨_, p, hpT, hpx | hpx⟩
-    · left
-      exact ⟨p, hpT, hpx⟩
-    · right
-      exact ⟨p, hpT, hpx⟩
-  have hpreds : ∀ x ∈ ffld T, (preds x T).Finite := by
-    intro x hx
-    apply hffld.subset
-    intro y hy
-    unfold preds at hy
-    simp only [Set.mem_setOf_eq] at hy
-    exact hy.1
+  τ.Nonempty → ((∀ x ∈ ffld τ, ∃ y, y ∈ preds x τ)) → ¬ (τ.Finite) := by
+  intro T nempty
+  contrapose!
+  intro Tfin
+  have lor : (ffld T).Nonempty ∨ (ffld T) = ∅ := by
+    exact Or.symm (Set.eq_empty_or_nonempty (ffld T))
+  rcases lor with nempty | empty
+  rcases nempty with ⟨X, XinT⟩
+  have slor : (preds X T).Nonempty ∨ (preds X T) = ∅ := by
+    exact Or.symm (Set.eq_empty_or_nonempty (preds X T))
+  rcases slor with pnempty | pempty
+  have finffld := SP30 T Tfin
+  have case1 := SP36R T X pnempty (SP38 T X XinT finffld)
+  rcases case1 with ⟨z, hz⟩
+  simp only [Set.not_nonempty_iff_eq_empty.symm, Set.nonempty_def] at hz
+  push Not at hz
+  exact ⟨z, hz.2, hz.1⟩
+  simp only [Set.not_nonempty_iff_eq_empty.symm, Set.nonempty_def] at pempty
+  push Not at pempty
+  exact ⟨X, XinT, pempty⟩
   sorry
 
   --simp only [ne_eq, Set.sep_and, Set.mem_inter_iff] at all
