@@ -674,6 +674,16 @@ theorem INV8 {κ : Type T} {n : ℕ} :
   simp only [and_true]
   exact sthm4
 
+theorem F_INV2 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ ↔ valid_timeline (inv_timeline τ) := by
+  intro T
+  constructor
+  · exact F_INV1 T
+  · have temp := F_INV1 (inv_timeline T)
+    rw [F_INV0 T] at temp
+    exact temp
+
 
 
 
@@ -874,6 +884,14 @@ theorem SP4 {κ : Type T} {n : ℕ} :
     · exact False.elim (nsuccA As)
     · exact False.elim (neq equ)
     · exact Bs
+
+theorem SP4R {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  B ∈ succs A τ → A ∈ preds B τ := by
+  intro T A B BsA
+  have vT := valid_timeline_imp T A B BsA
+  exact (SP4 T A B vT).mp BsA
 
 theorem fundirreflexivity {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
@@ -1522,6 +1540,36 @@ theorem SP27 {κ : Type T} {n : ℕ} :
     exact first
   · exact SP26 T B A
 
+theorem valid_timeline_imp_preds {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  B ∈ preds A τ → valid_timeline τ := by
+  intro T A B BpA
+  unfold preds ffld order_set at BpA
+  simp only [Set.mem_setOf_eq] at BpA
+  rcases BpA with ⟨H, J⟩
+  exact H.1
+
+theorem SP4RR {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  B ∈ succs A τ ↔ A ∈ preds B τ := by
+  intro T A B
+  have vT := valid_timeline_imp_preds T B A
+  constructor
+  · exact SP4R T A B
+  · intro ApB
+    replace vT := vT ApB
+    exact (SP4 T A B vT).mpr ApB
+
+theorem SP27R {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  (B ∈ succs A (inv_timeline τ) ↔ B ∈ preds A τ) := by
+  intro T A B
+  rw [(SP4RR T B A).symm]
+  exact SP27 T A B
+
 theorem SP28 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (A : timeline κ n),
   valid_timeline τ → A ∈ ffld τ → succs A τ ∩ {A} = ∅ := by
@@ -1577,14 +1625,45 @@ theorem SP31 {κ : Type T} {n : ℕ} :
 
 theorem SP32 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (A : timeline κ n),
-  A ∈ ffld τ → valid_timeline τ → τ.Finite → (ffld τ).ncard = (succs A τ).ncard + 1 + (preds A τ).ncard := by
-  intro T A Ainf vT Tfin
+  A ∈ ffld τ → τ.Finite → (ffld τ).ncard = (succs A τ).ncard + 1 + (preds A τ).ncard := by
+  intro T A Ainf Tfin
+  unfold ffld order_set at Ainf
+  simp only [Set.mem_setOf_eq] at Ainf
+  have vT := Ainf.1
   obtain ⟨m, hm⟩ : ∃ m : ℕ, m = (succs A T).ncard := by
     exact ⟨(succs A T).ncard, rfl⟩
   have tot := fundtotality T A Ainf vT
   sorry
 
 theorem SP33 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x y : timeline κ n),
+  y ∈ succs x τ → ∃ z, is_imm_succ y z τ := by
+  intro T x y ysux
+  unfold succs at ysux
+  simp only [Set.mem_setOf_eq] at ysux
+  rcases ysux with ⟨m, mgz, imm⟩
+  cases m with
+  | zero =>
+    omega
+  | succ m =>
+    cases m with
+    | zero =>
+      rw [zero_add] at mgz imm
+      unfold is_succ at imm
+      exact ⟨x, imm⟩
+    | succ k =>
+      rcases imm.2 with ⟨X, hX⟩
+      exact ⟨X, hX.2⟩
+
+theorem SP34 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x y : timeline κ n),
+  y ∈ preds x τ → ∃ z, is_imm_succ x z τ := by
+  intro T x y ypredx
+  have vT := valid_timeline_imp_preds T x y ypredx
+  have xsuy := (SP4RR T y x).mpr ypredx
+  exact SP33 T y x xsuy
+
+theorem SP35 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
   valid_timeline τ → ((preds x τ).Finite → ∃ z, preds z τ = ∅) := by
   intro T x vT finpreds
