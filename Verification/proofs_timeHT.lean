@@ -52,6 +52,12 @@ theorem validnonbranching {κ : Type T} {n : ℕ} :
   rcases vT with ⟨first, last⟩
   exact first
 
+theorem validnonempty {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → τ.Nonempty := by
+  intro T ⟨A, B, C, D⟩
+  exact D
+
 /-
 !SING# : Theorems regarding single timelines
 SING0 : The cardinality of a timeline that is single is exact 1
@@ -1807,15 +1813,38 @@ theorem SP38 {κ : Type T} {n : ℕ} :
   have subb := SP37 T x xin
   exact Set.Finite.subset finffld subb
 
+theorem SP39 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ →
+  ((ffld τ).Nonempty ↔ τ.Nonempty) := by
+  intro T vT
+  constructor
+  · intro n1
+    rcases n1 with ⟨x, hx⟩
+    unfold ffld order_set at hx
+    simp only [Set.mem_setOf_eq] at hx
+    rcases hx.2 with ⟨X, hX⟩
+    exact ⟨X, hX.1⟩
+  · intro n2
+    rcases n2 with ⟨x, hx⟩
+    unfold ffld order_set
+    simp only [Set.mem_setOf_eq, Prod.exists]
+    have claim : (x.1, x.2) ∈ T := hx
+    have triv : x.1 = x.1 ∨ x.2 = x.1 := by
+      left
+      rfl
+    have cll : ∃ a b, (a, b) ∈ T ∧ (a = x.1 ∨ b = x.1) := by
+      exact ⟨x.1, x.2, claim, triv⟩
+    exact ⟨x.1, vT, cll⟩
+
 theorem SPINFINITY {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
-  τ.Nonempty → ((∀ x ∈ ffld τ, ∃ y, y ∈ preds x τ)) → ¬ (τ.Finite) := by
+  (ffld τ).Nonempty → ((∀ x ∈ ffld τ, ∃ y, y ∈ preds x τ)) → ¬ (τ.Finite) := by
   intro T nempty
   contrapose!
   intro Tfin
   have lor : (ffld T).Nonempty ∨ (ffld T) = ∅ := by
     exact Or.symm (Set.eq_empty_or_nonempty (ffld T))
-  rcases lor with nempty | empty
   rcases nempty with ⟨X, XinT⟩
   have slor : (preds X T).Nonempty ∨ (preds X T) = ∅ := by
     exact Or.symm (Set.eq_empty_or_nonempty (preds X T))
@@ -1829,9 +1858,6 @@ theorem SPINFINITY {κ : Type T} {n : ℕ} :
   simp only [Set.not_nonempty_iff_eq_empty.symm, Set.nonempty_def] at pempty
   push Not at pempty
   exact ⟨X, XinT, pempty⟩
-  sorry
-
-  --simp only [ne_eq, Set.sep_and, Set.mem_inter_iff] at all
 
 
 
@@ -1839,59 +1865,105 @@ theorem SPINFINITY {κ : Type T} {n : ℕ} :
 /-
 !FL# : Theorems regarding the the definition of lasteles and firsteles
 -/
-/-theorem FL0 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
-  τ.Finite → ∃ x-/
+theorem FL0 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)), ∀ x ∈ ffld τ,
+  x ∈ firsteles τ ↔ preds x τ = ∅ := by
+  intro T x xinf
+  unfold firsteles
+  simp only [Set.not_nonempty_iff_eq_empty.symm, Set.nonempty_def, not_exists,
+              Set.mem_setOf_eq]
+  have vT : valid_timeline T := by
+    unfold ffld order_set at xinf
+    simp only [Set.mem_setOf_eq] at xinf
+    exact xinf.1
+  constructor
+  · contrapose
+    push Not
+    intro h1
+    rcases h1 with ⟨y, hy⟩
+    have exi := SP34 T x y hy
+    rcases exi with ⟨z, hz⟩
+    unfold is_imm_succ at hz
+    replace hz := hz.2
+    rcases hz with ⟨p, hp1, hp2, hp3⟩
+    intro extra
+    exact ⟨p, hp1, hp3⟩
+  · contrapose
+    push Not
+    intro h2
+    replace h2 := h2 xinf
+    simp only [Prod.exists] at h2
+    rcases h2 with ⟨a, b, pre, equ, final⟩
+    have triv : a = a ∧ x = x := by
+      exact Prod.mk_inj.mp rfl
+    have claim : is_imm_succ x a T := by
+      unfold is_imm_succ
+      refine ⟨vT, ?_⟩
+      simp only [Prod.exists, exists_eq_right_right, exists_eq_right]
+      exact pre
+    have pred := (SP4RR T a x).mp (SP0 T a x claim)
+    exact Exists.intro a pred
 
 theorem FL1 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
-  ¬ single τ →
-  ((valid_timeline τ) → (τ.Finite → ∃ x, firsteles τ = {x})) := by
-  intro T nsing ⟨nbT, orderT, sorderT, nemptyT⟩ finite
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
+  x ∈ firsteles τ → ∃ p ∈ τ, p.1 = x := by
+  intro T x
   unfold firsteles
-  have val : valid_timeline T := ⟨nbT, orderT, sorderT, nemptyT⟩
-  have fnbT := fundnonbranching T nbT
-  rcases nemptyT with ⟨y, yinT⟩
-  unfold ordered at orderT
-  --have orderTN := orderT
-  unfold nonbranching at nbT
-  unfold strictly_ordered at sorderT
-  simp [or_iff_not_imp_left] at orderT
-  have orderTN := orderT nsing ⟨y, yinT⟩ y.1 y.2 yinT
-  replace orderT := orderT nsing ⟨y, yinT⟩
-  let S := {s | s ∈ ffld T ∧ ∀ p ∈ T, p.2 ≠ s}
-  have eq : S = {s | s ∈ ffld T ∧ ∀ p ∈ T, p.2 ≠ s} := rfl
-  have exten : y.1 ∈ S ↔ y.1 ∈ ffld T ∧ ∀ p ∈ T, p.2 ≠ y.1 := by
-    rw [eq]
-    simp only [Set.mem_setOf_eq]
-  have ffldy : y.1 ∈ ffld T := by
-    unfold ffld order_set
-    simp only [Set.mem_setOf_eq]
-    refine ⟨val, ?_⟩
-    have lor : y.1 = y.1 ∨ y.2 = y.1 := by
-      left
-      rfl
-    exact ⟨y, yinT, lor⟩
-  have new := exten.mpr
-  simp only [and_imp] at new
-  replace new := new ffldy
-  rw [eq.symm]
-  have contra : ¬ (∃ x ∈ T, ∀ p ∈ T, p.2 ≠ x.1) → False := by
-    push Not
-    intro contrahp
-    simp only [Prod.exists, exists_eq_right, Prod.forall] at contrahp
-    sorry
-  have hpnew : ∃ x ∈ T, ∀ p ∈ T, p.2 ≠ x.1 := by
-    sorry
-  sorry
-
+  simp only [Set.mem_setOf_eq, and_imp]
+  intro xinf h
+  unfold ffld order_set at xinf
+  simp only [Set.mem_setOf_eq] at xinf
+  rcases xinf.2 with ⟨p, pinT, por⟩
+  replace h := h p pinT
+  replace por := por.symm
+  simp only [or_iff_not_imp_left] at por
+  push Not at por
+  replace por := por h
+  exact ⟨p, pinT, por⟩
 
 theorem FL2 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
+  x ∈ lasteles τ → ∃ p ∈ τ, p.2 = x := by
+  intro T x
+  unfold lasteles
+  simp only [Set.mem_setOf_eq, and_imp]
+  intro xinf h
+  unfold ffld order_set at xinf
+  simp only [Set.mem_setOf_eq] at xinf
+  rcases xinf.2 with ⟨p, pinT, por⟩
+  replace h := h p pinT
+  replace por := por.symm
+  simp only [or_iff_not_imp_right] at por
+  push Not at por
+  replace por := por h
+  exact ⟨p, pinT, por⟩
+
+theorem FL3 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  ((valid_timeline τ) → τ.Finite → ∃ x, x ∈ firsteles τ) := by
+  intro T vT finT
+  have nempty := validnonempty T vT
+  have ffldnempty := (SP39 T vT).mpr nempty
+  rcases ffldnempty with ⟨x, hx⟩
+  have finffld := SP30 T finT
+  have finpreds := SP38 T x hx finffld
+  have first := SP36R T x
+  have lor : (preds x T).Nonempty ∨ preds x T = ∅ := by
+    exact Or.symm (Set.eq_empty_or_nonempty (preds x T))
+  rcases lor with h1 | h2
+  replace first := first h1 finpreds
+  rcases first with ⟨z, hz1, hz2⟩
+  have claim := (FL0 T z hz2).mpr hz1
+  exact Exists.intro z claim
+  have claim := (FL0 T x hx).mpr h2
+  exact Exists.intro x claim
+
+theorem FL4 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   valid_timeline τ → ∃ x, lasteles τ = {x} := by
   sorry
 
-theorem FL3 {κ : Type T} {n : ℕ} :
+theorem FL5 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (valid_timeline ρ ∧ ρ ⊆ τ)
   → lasteles τ = lasteles ρ ∨ firsteles τ = firsteles ρ := by
