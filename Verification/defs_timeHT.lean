@@ -128,6 +128,23 @@ def tdisp {n : ℕ} {κ : Type T} (B A : timeline κ n)
     else
       ∅
 
+def sproj {n : ℕ} {κ : Type T} (τ : Set (timeline κ (n + 1) × timeline κ (n + 1))) :
+    Set (timeline κ n × timeline κ n) :=
+  {p | (∃ t ∈ ffld τ, p ∈ (show Set (timeline κ n × timeline κ n) from t)) ∨ ∃ t ∈ ffld τ,
+              ∃ r ∈ ffld τ, r ∈ succs t τ ∧ p.1 ∈ firsteles r ∧ p.2 ∈ lasteles t}
+
+def proj {n : ℕ} {κ : Type T} : (k : ℕ) → (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))) →
+    Set (timeline κ n × timeline κ n)
+    | 0, τ => sproj τ
+    | k + 1, τ =>
+      let τ' : Set (timeline κ ((n + 1) + (k + 1)) × timeline κ ((n + 1) + (k + 1))) := by
+        simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using τ
+      {p | (∃ t ∈ fld (κ := κ) (n + 1) (k + 1) τ',
+        p ∈ (show Set (timeline κ n × timeline κ n) from t)) ∨
+        ∃ t ∈ fld (κ := κ) (n + 1) (k + 1) τ',
+        ∃ r ∈ fld (κ := κ) (n + 1) (k + 1) τ',
+        p.1 ∈ firsteles r ∧ p.2 ∈ lasteles t}
+
 /-
 In the fld call, k represents the order of the timeline you wish your set members to be
 while m represents the beginning order of the timeline minus one. Thus, the order of a timeline

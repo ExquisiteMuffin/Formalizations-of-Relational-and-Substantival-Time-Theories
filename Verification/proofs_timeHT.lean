@@ -27,6 +27,13 @@ axiom totality {κ : Type T} :
   (A ∈ ffld τ ∧ B ∈ ffld τ ∧ valid_timeline τ)
   → (A ∈ succs B τ ∨ A = B ∨ B ∈ succs A τ)
 
+axiom projection_ordering {κ : Type T} :
+  ∀ (n k : ℕ)
+  (Ξ : timeline κ (n + k + 2))
+  (τ ρ : timeline κ (n + k + 1)),
+  ρ ∈ succs τ Ξ → ∀ (A B : timeline κ (n)), (B ∈ fld n k ρ ∧ A ∈ fld n k τ)
+  → B ∈ succs A (proj k Ξ)
+
 theorem fundamental {κ : Type T} :
   ∀ (n : ℕ)
   (τ : Set (timeline κ n × timeline κ n)),
@@ -1964,6 +1971,59 @@ theorem FL4 {κ : Type T} {n : ℕ} :
   sorry
 
 theorem FL5 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) x,
+  x ∈ firsteles τ → x ∈ ffld τ := by
+  intro T x xin
+  unfold firsteles at xin
+  simp only [Set.mem_setOf_eq] at xin
+  exact xin.1
+
+theorem FL6 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) x,
+  x ∈ firsteles τ → ∀ y, y ∈ firsteles τ → x = y := by
+  intro T x xinf y yinf
+  have ffldx := FL5 T x xinf
+  have vT : valid_timeline T := by
+    unfold ffld order_set at ffldx
+    simp only [Set.mem_setOf_eq] at ffldx
+    exact ffldx.1
+  have ffldy := FL5 T y yinf
+  have fi := (FL0 T x (FL5 T x xinf)).mp xinf
+  have fi2 := (FL0 T y (FL5 T y yinf)).mp yinf
+  simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq] at fi fi2
+  have toty := totality n T x y ⟨ffldx, ffldy, vT⟩
+  rw [SP4RR T x y, SP4RR T y x] at toty
+  rw [or_assoc.symm, or_right_comm, or_assoc, or_iff_not_imp_left] at toty
+  have h := (fi y).mp
+  simp only [imp_false] at h
+  replace toty := toty h
+  simp only [or_iff_not_imp_left] at toty
+  replace h := (fi2 x).mp
+  simp only [imp_false] at h
+  exact toty h
+
+theorem FL7 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  ((valid_timeline τ) → τ.Finite → ∃ x, firsteles τ  = {x}) := by
+  intro T vT Tfin
+  have exi := FL3 T vT Tfin
+  rcases exi with ⟨x, xinf⟩
+  have uni := FL6 T x xinf
+  simp only [Set.ext_iff, Set.mem_singleton_iff, iff_def]
+  have f : ∀ y, y = x → y ∈ firsteles T := by
+      intro y yeq
+      exact Set.mem_of_eq_of_mem yeq xinf
+  use x
+  intro y
+  constructor
+  · intro hy
+    exact (uni y hy).symm
+  · intro eqy
+    exact f y eqy
+
+--theorem FL8 {κ : Type T} {n : ℕ} :
+
+theorem FL9 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (valid_timeline ρ ∧ ρ ⊆ τ)
   → lasteles τ = lasteles ρ ∨ firsteles τ = firsteles ρ := by
