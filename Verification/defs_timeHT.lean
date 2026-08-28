@@ -133,10 +133,10 @@ def sproj {n : ℕ} {κ : Type T} (τ : Set (timeline κ (n + 1) × timeline κ 
   {p | (∃ t ∈ ffld τ, p ∈ (show Set (timeline κ n × timeline κ n) from t)) ∨ ∃ t ∈ ffld τ,
               ∃ r ∈ ffld τ, r ∈ succs t τ ∧ p.1 ∈ firsteles r ∧ p.2 ∈ lasteles t}
 
-def proj {n : ℕ} {κ : Type T} : (k : ℕ) → (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))) →
+def proj {κ : Type T} : (n : ℕ) → (k : ℕ) → (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))) →
     Set (timeline κ n × timeline κ n)
-    | 0, τ => sproj τ
-    | k + 1, τ =>
+    | n, 0, τ => sproj τ
+    | n, k + 1, τ =>
       let τ' : Set (timeline κ ((n + 1) + (k + 1)) × timeline κ ((n + 1) + (k + 1))) := by
         simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using τ
       {p | (∃ t ∈ fld (κ := κ) (n + 1) (k + 1) τ',

@@ -32,7 +32,7 @@ axiom projection_ordering {κ : Type T} :
   (Ξ : timeline κ (n + k + 2))
   (τ ρ : timeline κ (n + k + 1)),
   ρ ∈ succs τ Ξ → ∀ (A B : timeline κ (n)), (B ∈ fld n k ρ ∧ A ∈ fld n k τ)
-  → B ∈ succs A (proj k Ξ)
+  → B ∈ succs A (proj n k Ξ)
 
 theorem fundamental {κ : Type T} :
   ∀ (n : ℕ)
@@ -2021,7 +2021,10 @@ theorem FL7 {κ : Type T} {n : ℕ} :
   · intro eqy
     exact f y eqy
 
---theorem FL8 {κ : Type T} {n : ℕ} :
+theorem FL8 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  ((valid_timeline τ) → τ.Finite → ∃ x, lasteles τ  = {x}) := by
+  sorry
 
 theorem FL9 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
