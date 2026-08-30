@@ -42,6 +42,14 @@ theorem fundamental {κ : Type T} :
   intro n T
   exact ⟨T, rfl⟩
 
+theorem oppfundamental {κ : Type T} :
+  ∀ (n : ℕ)
+  (τ : timeline κ (n + 1)),
+  ∃ (t : Set (timeline κ n × timeline κ n)),
+  t = τ := by
+  intro n T
+  exact ⟨T, rfl⟩
+
 theorem fundnonbranching {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   nonbranching τ → ∀ (p : timeline κ n × timeline κ n),
@@ -2411,3 +2419,32 @@ theorem DIST1 {κ : Type T} (k n : ℕ) (A B : timeline κ (k + n)) :
   ∀ (τ : Set (timeline κ (k + n) × timeline κ (k + n))),
   tdist k n B A τ = tdist k n A B τ := by
   sorry
+
+
+
+
+
+/-
+!PROJ# : Theorems regarding the projected timelines
+-/
+theorem PROJ0 {κ : Type T} :
+  ∀ (n k : ℕ) (τ : timeline κ (n + k + 2)),
+  (proj n k τ).Nonempty → valid_timeline τ → valid_timeline (proj n k τ) := by
+  intro n k T nemptyproj vT
+  unfold valid_timeline at vT
+  have copVT := vT
+  have type := oppfundamental (n + k + 1) T
+  rcases type with ⟨t, teq⟩
+  rw [teq.symm] at vT copVT
+  rcases vT with ⟨A, B, C, D⟩
+  simp only [Set.nonempty_def, Prod.exists] at D nemptyproj
+  rcases D with ⟨z, s, pint⟩
+  have sisz : is_imm_succ s z t := by
+    unfold is_imm_succ
+    refine ⟨copVT, ?_⟩
+    simp only [Prod.exists, exists_eq_right_right, exists_eq_right]
+    exact pint
+  have ssz := SP0 t z s sisz
+  rw [teq.symm]
+  rcases nemptyproj with ⟨a, b, pinproj⟩
+  have orderT := projection_ordering n k t z s ssz a b

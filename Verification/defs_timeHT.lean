@@ -133,8 +133,13 @@ def sproj {n : ℕ} {κ : Type T} (τ : Set (timeline κ (n + 1) × timeline κ 
   {p | (∃ t ∈ ffld τ, p ∈ (show Set (timeline κ n × timeline κ n) from t)) ∨ ∃ t ∈ ffld τ,
               ∃ r ∈ ffld τ, r ∈ succs t τ ∧ p.1 ∈ firsteles r ∧ p.2 ∈ lasteles t}
 
+/-
+The indices here are a little tricky:
+  -> proj n k T projects the timeline of order n + k + 2
+      onto a timeline of order n + 1.
+-/
 def proj {κ : Type T} : (n : ℕ) → (k : ℕ) → (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))) →
-    Set (timeline κ n × timeline κ n)
+    timeline κ (n + 1)
     | n, 0, τ => sproj τ
     | n, k + 1, τ =>
       let τ' : Set (timeline κ ((n + 1) + (k + 1)) × timeline κ ((n + 1) + (k + 1))) := by
