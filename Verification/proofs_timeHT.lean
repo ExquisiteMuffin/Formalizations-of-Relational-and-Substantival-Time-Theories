@@ -1920,6 +1920,19 @@ theorem FL0 {κ : Type T} {n : ℕ} :
     exact Exists.intro a pred
 
 theorem FL1 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)), ∀ x ∈ ffld τ,
+  x ∈ lasteles τ ↔ succs x τ = ∅ := by
+  intro T x xinf
+  unfold lasteles
+  simp only [Set.not_nonempty_iff_eq_empty.symm, Set.nonempty_def, not_exists,
+              Set.mem_setOf_eq]
+  have vT : valid_timeline T := by
+    unfold ffld order_set at xinf
+    simp only [Set.mem_setOf_eq] at xinf
+    exact xinf.1
+  sorry
+
+theorem FL2 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
   x ∈ firsteles τ → ∃ p ∈ τ, p.1 = x := by
   intro T x
@@ -1936,7 +1949,7 @@ theorem FL1 {κ : Type T} {n : ℕ} :
   replace por := por h
   exact ⟨p, pinT, por⟩
 
-theorem FL2 {κ : Type T} {n : ℕ} :
+theorem FL3 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
   x ∈ lasteles τ → ∃ p ∈ τ, p.2 = x := by
   intro T x
@@ -1953,7 +1966,7 @@ theorem FL2 {κ : Type T} {n : ℕ} :
   replace por := por h
   exact ⟨p, pinT, por⟩
 
-theorem FL3 {κ : Type T} {n : ℕ} :
+theorem FL4 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   ((valid_timeline τ) → τ.Finite → ∃ x, x ∈ firsteles τ) := by
   intro T vT finT
@@ -1973,12 +1986,12 @@ theorem FL3 {κ : Type T} {n : ℕ} :
   have claim := (FL0 T x hx).mpr h2
   exact Exists.intro x claim
 
-theorem FL4 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ → ∃ x, lasteles τ = {x} := by
-  sorry
-
+/-
 theorem FL5 {κ : Type T} {n : ℕ} :
+  sorry
+-/
+
+theorem FL6 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) x,
   x ∈ firsteles τ → x ∈ ffld τ := by
   intro T x xin
@@ -1986,18 +1999,33 @@ theorem FL5 {κ : Type T} {n : ℕ} :
   simp only [Set.mem_setOf_eq] at xin
   exact xin.1
 
-theorem FL6 {κ : Type T} {n : ℕ} :
+theorem FL7 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
+  x ∈ firsteles τ → x ∈ lasteles (inv_timeline τ) := by
+  intro T x xinfir
+  have rep1 := (FL0 T x (FL6 T x xinfir)).mp xinfir
+  --have rep2 := (FL0 (inv_timeline T) x (FL6 (inv_timeline T) x xinfir)).mp xinfir
+  have thm := SP27R T x
+  have equ : preds x T = succs x (inv_timeline T) := by
+    simp only [Set.ext_iff]
+    intro B
+    exact (thm B).symm
+  rw [equ] at rep1
+  sorry
+
+
+theorem FL8 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) x,
   x ∈ firsteles τ → ∀ y, y ∈ firsteles τ → x = y := by
   intro T x xinf y yinf
-  have ffldx := FL5 T x xinf
+  have ffldx := FL6 T x xinf
   have vT : valid_timeline T := by
     unfold ffld order_set at ffldx
     simp only [Set.mem_setOf_eq] at ffldx
     exact ffldx.1
-  have ffldy := FL5 T y yinf
-  have fi := (FL0 T x (FL5 T x xinf)).mp xinf
-  have fi2 := (FL0 T y (FL5 T y yinf)).mp yinf
+  have ffldy := FL6 T y yinf
+  have fi := (FL0 T x (FL6 T x xinf)).mp xinf
+  have fi2 := (FL0 T y (FL6 T y yinf)).mp yinf
   simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq] at fi fi2
   have toty := totality n T x y ⟨ffldx, ffldy, vT⟩
   rw [SP4RR T x y, SP4RR T y x] at toty
@@ -2010,13 +2038,13 @@ theorem FL6 {κ : Type T} {n : ℕ} :
   simp only [imp_false] at h
   exact toty h
 
-theorem FL7 {κ : Type T} {n : ℕ} :
+theorem FL9 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   ((valid_timeline τ) → τ.Finite → ∃ x, firsteles τ  = {x}) := by
   intro T vT Tfin
-  have exi := FL3 T vT Tfin
+  have exi := FL4 T vT Tfin
   rcases exi with ⟨x, xinf⟩
-  have uni := FL6 T x xinf
+  have uni := FL8 T x xinf
   simp only [Set.ext_iff, Set.mem_singleton_iff, iff_def]
   have f : ∀ y, y = x → y ∈ firsteles T := by
       intro y yeq
@@ -2029,12 +2057,12 @@ theorem FL7 {κ : Type T} {n : ℕ} :
   · intro eqy
     exact f y eqy
 
-theorem FL8 {κ : Type T} {n : ℕ} :
+theorem FL10 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   ((valid_timeline τ) → τ.Finite → ∃ x, lasteles τ  = {x}) := by
   sorry
 
-theorem FL9 {κ : Type T} {n : ℕ} :
+theorem FL11 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (valid_timeline ρ ∧ ρ ⊆ τ)
   → lasteles τ = lasteles ρ ∨ firsteles τ = firsteles ρ := by
@@ -2446,5 +2474,6 @@ theorem PROJ0 {κ : Type T} :
     exact pint
   have ssz := SP0 t z s sisz
   rw [teq.symm]
-  rcases nemptyproj with ⟨a, b, pinproj⟩
-  have orderT := projection_ordering n k t z s ssz a b
+  --rcases nemptyproj with ⟨a, b, pinproj⟩
+  --have orderT := projection_ordering n k t z s ssz a b
+  sorry
