@@ -73,6 +73,9 @@ theorem validnonempty {κ : Type T} {n : ℕ} :
   intro T ⟨A, B, C, D⟩
   exact D
 
+
+
+
 /-
 !SING# : Theorems regarding single timelines
 SING0 : The cardinality of a timeline that is single is exact 1
@@ -705,9 +708,147 @@ theorem F_INV2 {κ : Type T} {n : ℕ} :
     rw [F_INV0 T] at temp
     exact temp
 
+theorem INV10 {κ : Type T} {n : ℕ} :
+  ∀ (r w : timeline κ n × timeline κ n),
+          inv_pair r = inv_pair w → r = w := by
+    intro r w eq
+    have neq := congr_arg (inv_pair ·) eq
+    rw [INV1 r, INV1 w] at neq
+    exact neq
 
+theorem INV10R {κ : Type T} {n : ℕ} :
+  Function.Injective (inv_pair (κ := κ) (n := n)) := by
+    exact INV10
 
+theorem INV10RR {κ : Type T} {n : ℕ} :
+  ∀ (S : Set (timeline κ n × timeline κ n)),
+    Set.InjOn (inv_pair) (S) := by
+    intro S a ha b hb h
+    exact INV10R (κ := κ) (n := n) h
 
+theorem INV11 {κ : Type T} {n : ℕ} :
+  ∀ (r : timeline κ n × timeline κ n),
+    ∃ (w : timeline κ n × timeline κ n), inv_pair w = r := by
+    intro r
+    have h := INV1 r
+    exact ⟨inv_pair r, h⟩
+
+theorem INV11R {κ : Type T} {n : ℕ} :
+  Function.Surjective (inv_pair (κ := κ) (n := n)) := by
+    exact INV11
+
+theorem INV11RR {κ : Type T} {n : ℕ} :
+  ∀ (A : Set (timeline κ n × timeline κ n)),
+    Set.SurjOn (inv_pair) (A) (inv_timeline A) := by
+    intro A a ha
+    simp only [Set.mem_image]
+    have niff := (INV0 A (inv_pair a)).mpr
+    rw [INV1 a] at niff
+    replace niff := niff ha
+    have h := INV1 a
+    exact ⟨inv_pair a, niff, h⟩
+
+theorem INV12 {κ : Type T} {n : ℕ} :
+  Function.Bijective (inv_pair (κ := κ) (n := n)) := by
+  exact ⟨INV10R, INV11R⟩
+
+theorem INV12RR {κ : Type T} {n : ℕ} :
+  ∀ (A : Set (timeline κ n × timeline κ n)),
+    Set.BijOn (inv_pair) (A) (inv_timeline A) := by
+    intro A
+    have surjon := INV11RR A
+    have injon := INV10RR A
+    have maps : Set.MapsTo (inv_pair) (A) (inv_timeline A) := by
+      have temp : ∀ x, x ∈ A → inv_pair x ∈ inv_timeline A := by
+        intro x
+        exact (INV0 A x).mp
+      exact Set.MapsTo.congr temp fun ⦃x⦄ ↦ congrFun rfl
+    exact Set.BijOn.mk maps injon surjon
+
+theorem INV13 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+    inv_timeline τ =
+    {(p : timeline κ n × timeline κ n) | inv_pair p ∈ τ} := by
+    intro T
+    simp only [Set.ext_iff, Set.mem_setOf_eq]
+    intro x
+    have niff := INV0 T (inv_pair x)
+    rw [INV1 x] at niff
+    exact niff.symm
+
+theorem INV14 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  τ.ncard = (inv_timeline τ).ncard := by
+  intro T
+  have bijective : Function.Bijective (inv_pair (κ := κ) (n := n)) := by
+    exact INV12 (κ := κ) (n := n)
+  have bijon := INV12RR T
+  exact Set.BijOn.ncard_eq (bijon)
+
+theorem INV15 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → (τ.Finite → (inv_timeline τ).Finite) := by
+  intro T vT finT
+  have nempty := validnonempty T vT
+  have ncardeq := INV14 T
+  have h := Set.Nonempty.ncard_pos finT nempty
+  have card : ∃ k, k > 0 ∧ T.ncard = k := by
+    refine ⟨T.ncard, ?_, rfl⟩
+    exact h
+  rcases card with ⟨k, gz, eq⟩
+  rw [ncardeq] at eq
+  have nez : (inv_timeline T).ncard ≠ 0 := by
+    rw [eq.symm] at gz
+    omega
+  exact Set.finite_of_ncard_ne_zero nez
+
+theorem INV16 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → (τ.Finite ↔ (inv_timeline τ).Finite) := by
+  intro T vT
+  constructor
+  · exact INV15 T vT
+  · intro fininvT
+    have vinvT := (F_INV2 T).mp vT
+    have tem := INV15 (inv_timeline T) vinvT fininvT
+    rw [F_INV0 T] at tem
+    exact tem
+
+theorem INV17 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  ffld τ = ffld (inv_timeline τ) := by
+  intro T
+  unfold ffld order_set
+  simp only [Set.ext_iff, Set.mem_setOf_eq]
+  intro x
+  have uiff := INV0 T
+  constructor
+  · intro hp1
+    refine ⟨F_INV1 T hp1.1, ?_⟩
+    rcases hp1.2 with ⟨p, hpint, hpp⟩
+    replace uiff := (uiff p).mp hpint
+    have eq1 : p.1 = (inv_pair p).2 := by
+      unfold inv_pair
+      rfl
+    have eq2 : p.2 = (inv_pair p).1 := by
+      unfold inv_pair
+      rfl
+    rw [eq1, eq2, or_comm] at hpp
+    exact ⟨inv_pair p, uiff, hpp⟩
+  · intro hp2
+    refine ⟨(F_INV2 T).mpr hp2.1, ?_⟩
+    rcases hp2.2 with ⟨p, hpint, hpp⟩
+    replace uiff := (uiff (inv_pair p)).mpr
+    rw [INV1 p] at uiff
+    replace uiff := uiff hpint
+    have eq1 : p.1 = (inv_pair p).2 := by
+      unfold inv_pair
+      rfl
+    have eq2 : p.2 = (inv_pair p).1 := by
+      unfold inv_pair
+      rfl
+    rw [eq1, eq2, or_comm] at hpp
+    exact ⟨inv_pair p, uiff, hpp⟩
 
 /-
 !FLD# : Theorems regarding the field
@@ -1591,6 +1732,15 @@ theorem SP27R {κ : Type T} {n : ℕ} :
   rw [(SP4RR T B A).symm]
   exact SP27 T A B
 
+theorem SP27RR {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+  (A B : timeline κ n),
+  (B ∈ succs A τ ↔ B ∈ preds A (inv_timeline τ)) := by
+  intro T A B
+  have temp := SP27R (inv_timeline T)
+  rw [F_INV0 T] at temp
+  exact temp A B
+
 theorem SP28 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (A : timeline κ n),
   valid_timeline τ → A ∈ ffld τ → succs A τ ∩ {A} = ∅ := by
@@ -1852,6 +2002,24 @@ theorem SP39 {κ : Type T} {n : ℕ} :
       exact ⟨x.1, x.2, claim, triv⟩
     exact ⟨x.1, vT, cll⟩
 
+theorem SP40 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
+  succs x (inv_timeline τ) = preds x τ := by
+  intro T x
+  have equiv := SP27R T x
+  simp only [Set.ext_iff]
+  intro B
+  exact equiv B
+
+theorem SP41 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
+  preds x (inv_timeline τ) = succs x τ := by
+  intro T x
+  have equiv := SP27RR T x
+  simp only [Set.ext_iff]
+  intro B
+  exact (equiv B).symm
+
 theorem SPINFINITY {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   (ffld τ).Nonempty → ((∀ x ∈ ffld τ, ∃ y, y ∈ preds x τ)) → ¬ (τ.Finite) := by
@@ -1922,15 +2090,62 @@ theorem FL0 {κ : Type T} {n : ℕ} :
 theorem FL1 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)), ∀ x ∈ ffld τ,
   x ∈ lasteles τ ↔ succs x τ = ∅ := by
+    intro T x xinf
+    unfold lasteles
+    simp only [Set.not_nonempty_iff_eq_empty.symm, Set.nonempty_def, not_exists,
+                Set.mem_setOf_eq]
+    have vT : valid_timeline T := by
+      unfold ffld order_set at xinf
+      simp only [Set.mem_setOf_eq] at xinf
+      exact xinf.1
+    constructor
+    · contrapose
+      push Not
+      intro h1
+      rcases h1 with ⟨y, hy⟩
+      have exi := SP18 T x y hy
+      rcases exi with ⟨z, hz⟩
+      unfold is_imm_succ at hz
+      replace hz := hz.2
+      rcases hz with ⟨p, hp1, hp2, hp3⟩
+      intro extra
+      exact ⟨p, hp1, hp2⟩
+    · contrapose
+      push Not
+      intro imp
+      replace imp := imp xinf
+      rcases imp with ⟨p, pinT, px⟩
+      have claim : is_imm_succ p.2 p.1 T := by
+        unfold is_imm_succ
+        refine ⟨vT, ?_⟩
+        simp only [Prod.exists, exists_eq_right_right, exists_eq_right, Prod.mk.eta]
+        exact pinT
+      rw [px] at claim
+      have suc := SP0 T x p.2 claim
+      exact ⟨p.2, suc⟩
+
+/-theorem FL1 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)), ∀ x ∈ ffld τ,
+  x ∈ lasteles τ ↔ succs x τ = ∅ := by
   intro T x xinf
-  unfold lasteles
-  simp only [Set.not_nonempty_iff_eq_empty.symm, Set.nonempty_def, not_exists,
-              Set.mem_setOf_eq]
+  --simp only [Set.not_nonempty_iff_eq_empty.symm, Set.nonempty_def, not_exists,
+              --Set.mem_setOf_eq]
   have vT : valid_timeline T := by
     unfold ffld order_set at xinf
     simp only [Set.mem_setOf_eq] at xinf
     exact xinf.1
-  sorry
+  have vinvT := F_INV1 T vT
+  have eqffld := INV7 T vT
+  have xininvfld := congr_arg (x ∈ ·) eqffld
+  simp only [iff_eq_eq.symm] at xininvfld
+  replace xininvfld := xininvfld.mp xinf
+  have invcase := FL0 (inv_timeline T) x xininvfld
+  have eq := SP41 T x
+  rw [eq] at invcase
+  rw [invcase.symm]
+  unfold lasteles firsteles
+  simp only [Set.mem_setOf_eq]
+-/
 
 theorem FL2 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
@@ -2004,6 +2219,7 @@ theorem FL7 {κ : Type T} {n : ℕ} :
   x ∈ firsteles τ → x ∈ lasteles (inv_timeline τ) := by
   intro T x xinfir
   have rep1 := (FL0 T x (FL6 T x xinfir)).mp xinfir
+  have xinf := FL6 T x xinfir
   --have rep2 := (FL0 (inv_timeline T) x (FL6 (inv_timeline T) x xinfir)).mp xinfir
   have thm := SP27R T x
   have equ : preds x T = succs x (inv_timeline T) := by
@@ -2011,8 +2227,13 @@ theorem FL7 {κ : Type T} {n : ℕ} :
     intro B
     exact (thm B).symm
   rw [equ] at rep1
-  sorry
-
+  have fl := FL0 T x (FL6 T x xinfir)
+  rw [equ] at fl
+  have fldeq := INV17 T
+  have xininvf := congr_arg (x ∈ ·) fldeq
+  simp only [iff_eq_eq.symm] at xininvf
+  replace xininvf := (xininvf).mp xinf
+  exact (FL1 (inv_timeline T) x xininvf).mpr (fl.mp xinfir)
 
 theorem FL8 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) x,
@@ -2060,6 +2281,9 @@ theorem FL9 {κ : Type T} {n : ℕ} :
 theorem FL10 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   ((valid_timeline τ) → τ.Finite → ∃ x, lasteles τ  = {x}) := by
+  intro T vT Tfin
+  have fininvT := INV15 T vT Tfin
+  have f := FL9 (inv_timeline T)
   sorry
 
 theorem FL11 {κ : Type T} {n : ℕ} :
@@ -2456,24 +2680,29 @@ theorem DIST1 {κ : Type T} (k n : ℕ) (A B : timeline κ (k + n)) :
 !PROJ# : Theorems regarding the projected timelines
 -/
 theorem PROJ0 {κ : Type T} :
-  ∀ (n k : ℕ) (τ : timeline κ (n + k + 2)),
-  (proj n k τ).Nonempty → valid_timeline τ → valid_timeline (proj n k τ) := by
-  intro n k T nemptyproj vT
-  unfold valid_timeline at vT
-  have copVT := vT
+  ∀ (n k : ℕ) (τ : timeline κ (n + k + 2)) (α β : timeline κ (n + k + 1)),
+  α ∈ ffld τ → β ∈ ffld τ → α ≠ β →
+    (fld n k α).Nonempty → (fld n k β).Nonempty →
+      valid_timeline (proj n k τ) := by
+  intro n k T α β αin βin αneβ nemptyfldα nemptyfldβ
   have type := oppfundamental (n + k + 1) T
   rcases type with ⟨t, teq⟩
-  rw [teq.symm] at vT copVT
-  rcases vT with ⟨A, B, C, D⟩
-  simp only [Set.nonempty_def, Prod.exists] at D nemptyproj
-  rcases D with ⟨z, s, pint⟩
-  have sisz : is_imm_succ s z t := by
-    unfold is_imm_succ
-    refine ⟨copVT, ?_⟩
-    simp only [Prod.exists, exists_eq_right_right, exists_eq_right]
-    exact pint
-  have ssz := SP0 t z s sisz
+  rw [teq.symm] at αin βin
+  have vT : valid_timeline t := by
+    unfold ffld order_set at αin
+    simp only [Set.mem_setOf_eq] at αin
+    exact αin.1
   rw [teq.symm]
-  --rcases nemptyproj with ⟨a, b, pinproj⟩
-  --have orderT := projection_ordering n k t z s ssz a b
-  sorry
+  have tot := totality (n + k + 1) t α β ⟨αin, βin, vT⟩
+  rw [or_comm, or_assoc, or_iff_not_imp_left] at tot
+  push Not at tot
+  replace tot := tot αneβ
+  rcases nemptyfldα with ⟨X, hX⟩
+  rcases nemptyfldβ with ⟨Y, hY⟩
+  have proj1 := projection_ordering n k t α β
+  have proj2 := projection_ordering n k t β α
+  rcases tot with s1 | s2
+  replace proj1 := proj1 s1 X Y ⟨hY, hX⟩
+  exact valid_timeline_imp (proj n k t) X Y proj1
+  replace proj2 := proj2 s2 Y X ⟨hX, hY⟩
+  exact valid_timeline_imp (proj n k t) Y X proj2
