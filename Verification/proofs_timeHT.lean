@@ -2214,6 +2214,14 @@ theorem FL6 {κ : Type T} {n : ℕ} :
   simp only [Set.mem_setOf_eq] at xin
   exact xin.1
 
+theorem FL6R {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) x,
+  x ∈ lasteles τ → x ∈ ffld τ := by
+  intro T x xin
+  unfold lasteles at xin
+  simp only [Set.mem_setOf_eq] at xin
+  exact xin.1
+
 theorem FL7 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
   x ∈ firsteles τ → x ∈ lasteles (inv_timeline τ) := by
@@ -2234,6 +2242,23 @@ theorem FL7 {κ : Type T} {n : ℕ} :
   simp only [iff_eq_eq.symm] at xininvf
   replace xininvf := (xininvf).mp xinf
   exact (FL1 (inv_timeline T) x xininvf).mpr (fl.mp xinfir)
+
+theorem FL7R {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
+  x ∈ lasteles τ → x ∈ firsteles (inv_timeline τ) := by
+  intro T x xinfir
+  have rep1 := (FL1 T x (FL6R T x xinfir)).mp xinfir
+  have xinf := FL6R T x xinfir
+  --have rep2 := (FL0 (inv_timeline T) x (FL6 (inv_timeline T) x xinfir)).mp xinfir
+  have thm := SP27R T x
+  have equ := SP41 T x
+  rw [equ.symm] at rep1
+  have fldeq := INV17 T
+  have xininvf := congr_arg (x ∈ ·) fldeq
+  simp only [iff_eq_eq.symm] at xininvf
+  replace xininvf := (xininvf).mp xinf
+  have fiff := FL0 (inv_timeline T) x xininvf
+  exact fiff.mpr rep1
 
 theorem FL8 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) x,
@@ -2279,19 +2304,33 @@ theorem FL9 {κ : Type T} {n : ℕ} :
     exact f y eqy
 
 theorem FL10 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
-  ((valid_timeline τ) → τ.Finite → ∃ x, lasteles τ  = {x}) := by
-  intro T vT Tfin
-  have fininvT := INV15 T vT Tfin
-  have f := FL9 (inv_timeline T)
-  sorry
+  ∀ (τ : Set (timeline κ n × timeline κ n)) x,
+  x ∈ firsteles τ ↔ x ∈ lasteles (inv_timeline τ) := by
+  intro T x
+  constructor
+  · exact FL7 T x
+  · have claim := FL7 (inv_timeline T) x
+    intro xlast
+    have xla := FL7R (inv_timeline T) x xlast
+    rw [F_INV0 T] at xla
+    exact xla
 
 theorem FL11 {κ : Type T} {n : ℕ} :
-  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  (valid_timeline ρ ∧ ρ ⊆ τ)
-  → lasteles τ = lasteles ρ ∨ firsteles τ = firsteles ρ := by
-  sorry
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  ((valid_timeline τ) → τ.Finite → ∃ x, lasteles τ = {x}) := by
+  intro T vT Tfin
+  have firstelecl := FL9 (inv_timeline T) (F_INV1 T vT) (INV15 T vT Tfin)
+  have eq := FL10 (inv_timeline T)
+  rcases firstelecl with ⟨X, hX⟩
+  rw [F_INV0 T, hX] at eq
+  simp only [Set.ext_iff]
+  use X
+  intro x
+  replace eq := eq x
+  exact eq.symm
 
+--theorem FL12 {κ : Type T} {n : ℕ} :
+--  ∀ (τ : Set (timeline κ n × timeline κ n)),
 
 
 

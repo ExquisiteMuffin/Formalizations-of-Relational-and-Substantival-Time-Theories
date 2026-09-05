@@ -109,6 +109,11 @@ def lasteles {n : ℕ} {κ : Type T} (τ : Set (timeline κ n × timeline κ n))
     Set (timeline κ n)
   := {s ∈ ffld τ | ∀ p ∈ τ, p.1 ≠ s}
 
+def add {n : ℕ} {κ : Type T} (τ : Set (timeline κ n × timeline κ n))
+    (ρ : Set (timeline κ n × timeline κ n)) :
+    Set (timeline κ n × timeline κ n)
+    := τ ∪ {s | s.1 ∈ lasteles τ ∧ s.2 ∈ firsteles ρ} ∪ ρ
+
 def inv_timeline {n : ℕ} {κ : Type T} (τ : Set (timeline κ n × timeline κ n)) :
     Set (timeline κ n × timeline κ n)
   := {p | ∃ q ∈ τ, p.1 = q.2 ∧ p.2 = q.1}
