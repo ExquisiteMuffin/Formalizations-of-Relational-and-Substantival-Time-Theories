@@ -8,3 +8,5 @@ universe T
 
 /-axiom idem {κ : Type T} :
 ∀ τ,-/
+
+/-axiom unrestricted_obs : -/

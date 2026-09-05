@@ -2329,9 +2329,6 @@ theorem FL11 {κ : Type T} {n : ℕ} :
   replace eq := eq x
   exact eq.symm
 
---theorem FL12 {κ : Type T} {n : ℕ} :
---  ∀ (τ : Set (timeline κ n × timeline κ n)),
-
 
 
 
@@ -2359,35 +2356,37 @@ theorem ADD0 {κ : Type T} {n : ℕ} :
     push Not
     exact ⟨A, B⟩
 
-theorem ADD1 {κ : Type T} {n : ℕ} :
+theorem ADD5 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  (valid_timeline τ ∧ valid_timeline ρ ∧ lasteles τ = firsteles ρ)
-  → ordered (τ ∪ ρ) := by
+  add τ ρ = inv_timeline (add ρ τ) := by
   sorry
 
-theorem ADD2 {κ : Type T} {n : ℕ} :
-  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  (valid_timeline τ ∧ valid_timeline ρ ∧ lasteles τ = firsteles ρ)
-  → nonbranching (τ ∪ ρ) := by
+theorem ADD6 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  add τ τ = τ ∪ {s | s.1 ∈ lasteles τ ∧ s.2 ∈ firsteles τ} := by
   sorry
 
-theorem ADD3 {κ : Type T} {n : ℕ} :
+theorem ADD7 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  (valid_timeline τ ∧ valid_timeline ρ ∧ lasteles τ = firsteles ρ)
-  → strictly_ordered (τ ∪ ρ) := by
+  add τ ρ = add ρ τ → τ = ∅ ∨ ρ = ∅ := by
   sorry
 
-theorem ADD4 {κ : Type T} {n : ℕ} :
+theorem ADD8 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  (valid_timeline τ ∧ valid_timeline ρ ∧ lasteles τ = firsteles ρ)
-  → (τ ∪ ρ).Nonempty := by
+  ((lasteles τ).Nonempty ∨ (firsteles ρ).Nonempty) →
+  lasteles τ = firsteles ρ → ∃ χ ⊆ ρ, add τ χ = τ ∪ ρ := by
   sorry
 
-theorem ADDN {κ : Type T} {n : ℕ} :
+theorem ADD9 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  (valid_timeline τ ∧ valid_timeline ρ ∧ lasteles τ = firsteles ρ)
-  → valid_timeline (τ ∪ ρ) := by
+  ffld τ ∩ ffld ρ = ∅ → valid_timeline τ → valid_timeline ρ
+  → valid_timeline (add τ ρ) := by
   sorry
+
+theorem ADD10 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  (lasteles τ).Nonempty → (firsteles ρ).Nonempty →
+  (ffld (add τ ρ)).ncard = (ffld τ).ncard + (ffld ρ).ncard := by
 
 
 
