@@ -45,7 +45,7 @@ def ffld {n : ℕ} {κ : Type T} (τ : Set (timeline κ n × timeline κ n)) : S
   := {s : timeline κ n | τ ∈ (order_set n) ∧ (∃ p ∈ τ, p.1 = s ∨ p.2 = s)}
 
 --The commented out defintion beneath is going to be proved equivalent
---in a theorem in proofs_timeHT.lean
+--Here, n represents the order of timelines in the set while k + 1 represents how far
 def fld {κ : Type T} (n : ℕ) :
     (m : ℕ) → Set (timeline κ (n + m) × timeline κ (n + m)) → Set (timeline κ n)
   | 0, τ => {s | valid_timeline τ ∧ (∃ p ∈ τ, p.1 = s ∨ p.2 = s)}

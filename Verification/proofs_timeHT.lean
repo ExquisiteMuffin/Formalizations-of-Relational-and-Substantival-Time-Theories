@@ -2356,9 +2356,20 @@ theorem ADD0 {κ : Type T} {n : ℕ} :
     push Not
     exact ⟨A, B⟩
 
+/-theorem ADD3 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+-/
+
+theorem ADD4 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ∃ (ρ χ : Set (timeline κ n × timeline κ n)),
+  add ρ χ = τ := by
+  intro T vT
+  sorry
+
 theorem ADD5 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  add τ ρ = inv_timeline (add ρ τ) := by
+  add τ ρ = inv_timeline (add (inv_timeline ρ) (inv_timeline τ)) := by
   sorry
 
 theorem ADD6 {κ : Type T} {n : ℕ} :
@@ -2387,6 +2398,7 @@ theorem ADD10 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (lasteles τ).Nonempty → (firsteles ρ).Nonempty →
   (ffld (add τ ρ)).ncard = (ffld τ).ncard + (ffld ρ).ncard := by
+  sorry
 
 
 
@@ -2438,8 +2450,7 @@ theorem SUBT1 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   subt τ ρ = inv_timeline (subt (inv_timeline τ) (inv_timeline ρ)) := by
   intro T P
-  --unfold subt
-  rw [Set.ext_iff]
+  simp only [Set.ext_iff]
   intro x
   have sthm1 : ∀ τ, inv_pair x ∈ τ ↔ x ∈ inv_timeline τ := by
     intro R
@@ -2584,7 +2595,6 @@ theorem SUBT7 {κ : Type T} {n : ℕ} :
   let first := firsteles T
   sorry
 
-
 theorem SUBT8 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (valid_timeline τ ∧ valid_timeline ρ ∧ ρ ⊆ τ) →
@@ -2716,6 +2726,9 @@ theorem DIST1 {κ : Type T} (k n : ℕ) (A B : timeline κ (k + n)) :
 
 /-
 !PROJ# : Theorems regarding the projected timelines
+PROJ0 :
+PROJ1 :
+PROJ2 : Generalization of PROJ1 to any projection
 -/
 theorem PROJ0 {κ : Type T} :
   ∀ (n k : ℕ) (τ : timeline κ (n + k + 2)) (α β : timeline κ (n + k + 1)),
@@ -2744,3 +2757,50 @@ theorem PROJ0 {κ : Type T} :
   exact valid_timeline_imp (proj n k t) X Y proj1
   replace proj2 := proj2 s2 Y X ⟨hX, hY⟩
   exact valid_timeline_imp (proj n k t) Y X proj2
+
+theorem PROJ1 {κ : Type T} :
+  ∀ (n k : ℕ) (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
+  (∃ ℓ > 0, (∀ (ρ : Set (timeline κ (n + k) × timeline κ (n + k))),
+    ρ ∈ ffld τ → ρ.ncard = ℓ))
+  → ∀ (σ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
+    sproj σ = sproj τ → σ = τ := by
+  intro n k T exil S equ
+  rcases exil with ⟨ℓ, gr, prop⟩
+  sorry
+
+theorem PROJ2 {κ : Type T} :
+  ∀ (n k : ℕ) (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
+  (∃ ℓ > 0, ∀ m, (hm : m < k) →
+  ∀ (ρ : Set (timeline κ (n + m + 1) × timeline κ (n + m + 1))),
+    ρ ∈ fld (n + m + 2) (k - m - 1)
+    (by
+      have h :
+      n + m + 2 + (k - m - 1) = n + k + 1 := by
+        omega
+      rw [h]
+      exact τ)
+    → ρ.ncard = ℓ)
+  → ∀ σ : timeline κ (n + k + 2),
+    proj n k σ = proj n k τ → σ = τ := by
+  intro n k T exil σ equ
+  rcases exil with ⟨ℓ, lgz, re⟩
+  unfold proj at equ
+  sorry
+
+
+/-
+!FUNC# : Theorems regarding transformations between timelines
+FUNC0 : Any isomorphism with at least one valid timeline
+          guarantees that the other timeline is also valid
+FUNC1 : Generalization of FUNC0
+-/
+theorem FUNC0 {κ : Type T} {n : ℕ} (τ ρ : Set (timeline κ n × timeline κ n))
+    (R : ffld τ → ffld ρ) :
+  valid_timeline τ → Function.Bijective R → valid_timeline ρ := by
+  sorry
+
+theorem FUNC1 {κ : Type T} {n k : ℕ} (τ : Set (timeline κ n × timeline κ n))
+    (ρ : Set (timeline κ (n + k) × timeline κ (n + k)))
+    (R : ffld τ → ffld ρ) :
+  valid_timeline τ → Function.Bijective R → valid_timeline ρ := by
+  sorry
