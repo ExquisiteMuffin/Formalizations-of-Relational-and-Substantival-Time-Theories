@@ -880,6 +880,14 @@ theorem FLD0 {κ : Type T} {n : ℕ} :
     have sthm1 := subPT (y,z) eps
     exact ⟨y, z, sthm1, eq⟩
 
+theorem FLD1 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  fld n 0 τ = ffld τ := by
+  intro T
+  unfold fld ffld order_set
+  simp only [Set.mem_setOf_eq]
+  rfl
+
 
 
 
@@ -2626,6 +2634,7 @@ theorem SUBT8 {κ : Type T} {n : ℕ} :
 
 
 
+
 /-
 !COUNT# : Theorems regarding the cardinality of timelines and of fields
 -/
@@ -2759,16 +2768,107 @@ theorem PROJ0 {κ : Type T} :
   exact valid_timeline_imp (proj n k t) Y X proj2
 
 theorem PROJ1 {κ : Type T} :
+  ∀ (n : ℕ)
+  (τ : Set (timeline κ (n + 1) × timeline κ (n + 1))),
+  fld n 1 τ = ffld (sproj τ) := by
+  simp only [Set.ext_iff]
+  intro n T X
+  constructor
+  · intro hp1
+    sorry
+  · intro hp2
+    sorry
+
+theorem PROJ2 {κ : Type T} :
+  ∀ (n : ℕ)
+  (τ : Set (timeline κ (n + 1) × timeline κ (n + 1))),
+  τ = ∅ → sproj τ = ∅ := by
+  intro n T empt
+  unfold sproj
+  have claim : ffld T = ∅ := by
+    unfold ffld order_set
+    simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq, iff_false]
+    simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq, iff_false] at empt
+    push Not
+    intro x vT p pinT
+    replace empt := empt p
+    exact not_or.mp fun a ↦ empt pinT
+  simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq, iff_false]
+  push Not
+  intro x
+  constructor
+  · intro t tinf
+    simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq, iff_false] at claim
+    replace claim := claim t
+    contradiction
+  · intro t tinf r rinT rin xx
+    simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq, iff_false] at claim
+    replace claim := claim t
+    contradiction
+
+theorem PROJ3 {κ : Type T} :
+  ∀ (n : ℕ)
+  (τ : Set (timeline κ (n + 1) × timeline κ (n + 1))),
+  proj n 0 τ = sproj τ := by
+  sorry
+
+theorem PROJ4 {κ : Type T} :
+  ∀ (n : ℕ)
+  (τ : Set (timeline κ (n + 1) × timeline κ (n + 1)))
+  (A B : Set (timeline κ (n) × timeline κ (n))),
+  A ∈ ffld τ → B ∈ ffld τ → A ≠ B → ffld A ⊆ ffld (sproj τ) := by
+  simp only [Set.subset_def]
+  intro n T A B AinfT BinfT AneB X XinfA
+  unfold ffld
+  simp only [Set.mem_setOf_eq]
+  sorry
+
+theorem PROJ5 {κ : Type T} :
+  ∀ (n k : ℕ) (hk : k > 0)
+  (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
+  sproj (sproj
+    ((by
+      have h : n + k - 1 + 1 + 1 = n + k + 1 := by
+        omega
+      simpa only [h] using τ)))
+  = proj (n + k - 1) 1
+    (by
+      have h : n + k - 1 + 1 + 1 = n + k + 1 := by
+        omega
+      simpa only [h] using τ) := by
+  intro n k hk T
+  simp only [eq_mpr_eq_cast]
+  unfold proj
+  sorry
+
+/-theorem PROJ6 {κ : Type T} :
+  ∀ (n k : ℕ)
+  (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
+-/
+
+theorem PROJ7 {κ : Type T} :
   ∀ (n k : ℕ) (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
-  (∃ ℓ > 0, (∀ (ρ : Set (timeline κ (n + k) × timeline κ (n + k))),
+  (sproj τ).Nonempty → (∃ ℓ > 0, (∀ (ρ : Set (timeline κ (n + k) × timeline κ (n + k))),
     ρ ∈ ffld τ → ρ.ncard = ℓ))
   → ∀ (σ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
     sproj σ = sproj τ → σ = τ := by
-  intro n k T exil S equ
+  intro n k T nempt exil S equ
   rcases exil with ⟨ℓ, gr, prop⟩
+  have prop := Set.eq_empty_or_nonempty (S)
+  rcases prop with empt | nempt
+  have empteq := PROJ2 (n + k) S empt
+  rw [empteq] at equ
+  replace equ := equ.symm
+  have contra : sproj T ≠ ∅ := by
+    simp only [Set.nonempty_def] at nempt
+    simp only [Set.empty_def, Set.ext_iff, Set.mem_setOf_eq, iff_false] at equ
+    rcases nempt with ⟨x, hx⟩
+    replace equ := equ x
+    contradiction
+  contradiction
   sorry
 
-theorem PROJ2 {κ : Type T} :
+theorem PROJ8 {κ : Type T} :
   ∀ (n k : ℕ) (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
   (∃ ℓ > 0, ∀ m, (hm : m < k) →
   ∀ (ρ : Set (timeline κ (n + m + 1) × timeline κ (n + m + 1))),
@@ -2786,7 +2886,6 @@ theorem PROJ2 {κ : Type T} :
   rcases exil with ⟨ℓ, lgz, re⟩
   unfold proj at equ
   sorry
-
 
 /-
 !FUNC# : Theorems regarding transformations between timelines

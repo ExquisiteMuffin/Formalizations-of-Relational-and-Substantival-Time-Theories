@@ -145,15 +145,8 @@ The indices here are a little tricky:
 -/
 def proj {κ : Type T} : (n : ℕ) → (k : ℕ) → (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))) →
     timeline κ (n + 1)
-    | n, 0, τ => sproj τ
-    | n, k + 1, τ =>
-      let τ' : Set (timeline κ ((n + 1) + (k + 1)) × timeline κ ((n + 1) + (k + 1))) := by
-        simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using τ
-      {p | (∃ t ∈ fld (κ := κ) (n + 1) (k + 1) τ',
-        p ∈ (show Set (timeline κ n × timeline κ n) from t)) ∨
-        ∃ t ∈ fld (κ := κ) (n + 1) (k + 1) τ',
-        ∃ r ∈ fld (κ := κ) (n + 1) (k + 1) τ',
-        p.1 ∈ firsteles r ∧ p.2 ∈ lasteles t}
+    | _n, 0, τ => sproj τ
+    | n, k + 1, τ => proj n k (sproj τ)
 
 /-
 In the fld call, k represents the order of the timeline you wish your set members to be
