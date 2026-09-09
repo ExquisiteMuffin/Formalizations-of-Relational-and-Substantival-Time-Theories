@@ -2810,9 +2810,34 @@ theorem PROJ3 {κ : Type T} :
   ∀ (n : ℕ)
   (τ : Set (timeline κ (n + 1) × timeline κ (n + 1))),
   proj n 0 τ = sproj τ := by
-  sorry
+  intro n T
+  unfold proj
+  rfl
 
 theorem PROJ4 {κ : Type T} :
+  ∀ (n k : ℕ) (hk : k > 0)
+  (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
+  sproj (sproj
+    (by
+      have h : n + k - 1 + 1 + 1 = n + k + 1 := by
+        omega
+      simpa only [h] using τ))
+  = proj (n + k - 1) 1
+    (by
+      have h : n + k - 1 + 1 + 1 = n + k + 1 := by
+        omega
+      simpa only [h] using τ) := by
+  intro n k hk T
+  simp only [eq_mpr_eq_cast]
+  unfold proj
+  /-have PROJ := fun (X : Set (timeline κ (n + k) × timeline κ (n + k)))
+                => PROJ3 (n + k - 1) (by
+                    have h : n + k - 1 + 1 = n + k := by
+                      omega
+                    simpa only [h] using X)-/
+  exact Set.Subset.antisymm (fun ⦃a⦄ a_1 ↦ a_1) fun ⦃a⦄ a_1 ↦ a_1
+
+theorem PROJ5 {κ : Type T} :
   ∀ (n : ℕ)
   (τ : Set (timeline κ (n + 1) × timeline κ (n + 1)))
   (A B : Set (timeline κ (n) × timeline κ (n))),
@@ -2823,28 +2848,40 @@ theorem PROJ4 {κ : Type T} :
   simp only [Set.mem_setOf_eq]
   sorry
 
-theorem PROJ5 {κ : Type T} :
+theorem PROJ6 {κ : Type T} :
   ∀ (n k : ℕ) (hk : k > 0)
   (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
-  sproj (sproj
-    ((by
-      have h : n + k - 1 + 1 + 1 = n + k + 1 := by
-        omega
-      simpa only [h] using τ)))
-  = proj (n + k - 1) 1
+  sproj (proj (n + 1) (k - 1)
     (by
-      have h : n + k - 1 + 1 + 1 = n + k + 1 := by
+      have h : n + 1 + (k - 1) + 1 = n + k + 1 := by
         omega
-      simpa only [h] using τ) := by
+      simpa only [h] using τ
+    )) = proj n k τ := by
   intro n k hk T
   simp only [eq_mpr_eq_cast]
   unfold proj
-  sorry
-
-/-theorem PROJ6 {κ : Type T} :
-  ∀ (n k : ℕ)
-  (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
--/
+  cases k with
+  | zero =>
+    contradiction
+  | succ k =>
+    induction k with
+    | zero =>
+      simp only [Nat.reduceAdd, Nat.add_one_sub_one, Nat.add_zero, cast_eq]
+      have hh := fun (X : Set (timeline κ (n + 1) × timeline κ (n + 1)))
+                  => PROJ3 n X
+      exact (hh (sproj T)).symm
+    | succ k ih =>
+      simp only [Nat.add_one_sub_one]
+      have lor : k + 1 > 0 ∨ k + 1 = 0 := by
+        omega
+      rcases lor with lor1 | lor2
+      replace ih := ih lor1 (sproj T)
+      simp only [Nat.add_one_sub_one] at ih
+      rw [← proj.eq_def] at ih
+      sorry
+      have kclaim : k + 1 + 1 = 1 := by
+        omega
+      sorry
 
 theorem PROJ7 {κ : Type T} :
   ∀ (n k : ℕ) (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
