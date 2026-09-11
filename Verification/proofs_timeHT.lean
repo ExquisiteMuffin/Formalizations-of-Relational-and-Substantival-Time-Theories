@@ -880,13 +880,22 @@ theorem FLD0 {κ : Type T} {n : ℕ} :
     have sthm1 := subPT (y,z) eps
     exact ⟨y, z, sthm1, eq⟩
 
-theorem FLD1 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
+theorem FLD1 {κ : Type T} :
+  ∀ (n : ℕ) (τ : Set (timeline κ n × timeline κ n)),
   fld n 0 τ = ffld τ := by
-  intro T
+  intro n T
   unfold fld ffld order_set
   simp only [Set.mem_setOf_eq]
   rfl
+
+theorem valid_timeline_imp_ffld {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  (ffld τ).Nonempty → valid_timeline τ := by
+  intro T hp
+  unfold ffld order_set at hp
+  rcases hp with ⟨L, hL⟩
+  simp only [Set.mem_setOf_eq] at hL
+  exact hL.1
 
 
 
@@ -2739,7 +2748,7 @@ PROJ0 :
 PROJ1 :
 PROJ2 : Generalization of PROJ1 to any projection
 -/
-theorem PROJ0 {κ : Type T} :
+theorem valid_timeline_imp_proj {κ : Type T} :
   ∀ (n k : ℕ) (τ : timeline κ (n + k + 2)) (α β : timeline κ (n + k + 1)),
   α ∈ ffld τ → β ∈ ffld τ → α ≠ β →
     (fld n k α).Nonempty → (fld n k β).Nonempty →
@@ -2770,14 +2779,70 @@ theorem PROJ0 {κ : Type T} :
 theorem PROJ1 {κ : Type T} :
   ∀ (n : ℕ)
   (τ : Set (timeline κ (n + 1) × timeline κ (n + 1))),
-  fld n 1 τ = ffld (sproj τ) := by
-  simp only [Set.ext_iff]
-  intro n T X
-  constructor
-  · intro hp1
-    sorry
-  · intro hp2
-    sorry
+  valid_timeline (sproj τ) → (fld n 1 τ ⊆ ffld (sproj τ)) := by
+  simp only [Set.subset_def]
+  intro n T vSP X hp1
+  unfold fld at hp1
+  simp only [Set.mem_setOf_eq] at hp1
+  rcases hp1.2 with ⟨Y, Yin, orY⟩
+  have vYc := orY
+  rcases vYc with r | l
+  rcases r with ⟨vvY, A, Ain, Aor⟩
+  have XinffldY : X ∈ ffld Y.1 := by
+    unfold ffld order_set
+    simp only [Set.mem_setOf_eq]
+    refine ⟨vvY, ?_⟩
+    exact ⟨A, Ain, Aor⟩
+  unfold ffld order_set
+  have Y1inffldT : Y.1 ∈ ffld T := by
+    unfold ffld order_set
+    simp only [Set.mem_setOf_eq]
+    refine ⟨hp1.1, ?_⟩
+    use Y
+    refine ⟨Yin, ?_⟩
+    left
+    rfl
+  have exi : ∃ t ∈ ffld T,
+                A ∈ (show Set (timeline κ n × timeline κ n) from t) := by
+    simp only
+    exact ⟨Y.1, Y1inffldT, Ain⟩
+  simp only at exi
+  have Ainproj : A ∈ sproj T := by
+    unfold sproj
+    simp only [Nat.add_zero, Set.mem_setOf_eq]
+    left
+    exact exi
+  simp only [Set.mem_setOf_eq]
+  refine ⟨?_, ⟨A, Ainproj, Aor⟩⟩
+  exact vSP
+  rcases l with ⟨vvY, A, Ain, Aor⟩
+  have XinffldY : X ∈ ffld Y.2 := by
+    unfold ffld order_set
+    simp only [Set.mem_setOf_eq]
+    refine ⟨vvY, ?_⟩
+    exact ⟨A, Ain, Aor⟩
+  unfold ffld order_set
+  have Y2inffldT : Y.2 ∈ ffld T := by
+    unfold ffld order_set
+    simp only [Set.mem_setOf_eq]
+    refine ⟨hp1.1, ?_⟩
+    use Y
+    refine ⟨Yin, ?_⟩
+    right
+    rfl
+  have exi : ∃ t ∈ ffld T,
+                A ∈ (show Set (timeline κ n × timeline κ n) from t) := by
+    simp only
+    exact ⟨Y.2, Y2inffldT, Ain⟩
+  simp only at exi
+  have Ainproj : A ∈ sproj T := by
+    unfold sproj
+    simp only [Nat.add_zero, Set.mem_setOf_eq]
+    left
+    exact exi
+  simp only [Set.mem_setOf_eq]
+  refine ⟨?_, ⟨A, Ainproj, Aor⟩⟩
+  exact vSP
 
 theorem PROJ2 {κ : Type T} :
   ∀ (n : ℕ)
@@ -2848,40 +2913,10 @@ theorem PROJ5 {κ : Type T} :
   simp only [Set.mem_setOf_eq]
   sorry
 
-theorem PROJ6 {κ : Type T} :
-  ∀ (n k : ℕ) (hk : k > 0)
-  (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
-  sproj (proj (n + 1) (k - 1)
-    (by
-      have h : n + 1 + (k - 1) + 1 = n + k + 1 := by
-        omega
-      simpa only [h] using τ
-    )) = proj n k τ := by
-  intro n k hk T
-  simp only [eq_mpr_eq_cast]
-  unfold proj
-  cases k with
-  | zero =>
-    contradiction
-  | succ k =>
-    induction k with
-    | zero =>
-      simp only [Nat.reduceAdd, Nat.add_one_sub_one, Nat.add_zero, cast_eq]
-      have hh := fun (X : Set (timeline κ (n + 1) × timeline κ (n + 1)))
-                  => PROJ3 n X
-      exact (hh (sproj T)).symm
-    | succ k ih =>
-      simp only [Nat.add_one_sub_one]
-      have lor : k + 1 > 0 ∨ k + 1 = 0 := by
-        omega
-      rcases lor with lor1 | lor2
-      replace ih := ih lor1 (sproj T)
-      simp only [Nat.add_one_sub_one] at ih
-      rw [← proj.eq_def] at ih
-      sorry
-      have kclaim : k + 1 + 1 = 1 := by
-        omega
-      sorry
+/-theorem PROJ6 {κ : Type T} :
+  ∀ (n k q : ℕ)
+  (τ : Set (timeline κ (n + k + q + 1) × timeline κ (n + k + q + 1))),
+  proj n k (proj (n + k + 1) q τ) = proj n (k + q) τ := by-/
 
 theorem PROJ7 {κ : Type T} :
   ∀ (n k : ℕ) (τ : Set (timeline κ (n + k + 1) × timeline κ (n + k + 1))),
@@ -2923,6 +2958,58 @@ theorem PROJ8 {κ : Type T} :
   rcases exil with ⟨ℓ, lgz, re⟩
   unfold proj at equ
   sorry
+
+theorem PROJ9 {κ : Type T} :
+  ∀ (n : ℕ)
+  (τ : Set (timeline κ (n + 1) × timeline κ (n + 1))),
+  valid_timeline (sproj τ) → (fld n 1 τ = ffld (sproj τ)) := by
+  simp only [Set.ext_iff]
+  intro n T vSP X
+  constructor
+  · intro hp1
+    have thm := PROJ1 n T vSP
+    rw [Set.subset_def] at thm
+    exact thm X hp1
+  · intro hp2
+    unfold fld
+    simp only [Set.mem_setOf_eq]
+    unfold ffld order_set at hp2
+    simp only [Set.mem_setOf_eq] at hp2
+    rcases hp2 with ⟨vSP, Y, Yin, Yor⟩
+    unfold sproj at Yin
+    simp only [Set.mem_setOf_eq] at Yin
+    rcases Yin with in1 | in2
+    rcases in1 with ⟨t, tinf, Yint⟩
+    have vT := valid_timeline_imp_ffld T (Set.nonempty_of_mem tinf)
+    refine ⟨vT, ?_⟩
+    have tinfc := tinf
+    unfold ffld order_set at tinf
+    simp only [Set.mem_setOf_eq] at tinf
+    replace tinf := tinf.2
+    rcases tinf with ⟨p, pinT, por⟩
+    use p
+    refine ⟨pinT, ?_⟩
+    rw [FLD1 n p.1, FLD1 n p.2]
+    unfold ffld order_set
+    simp only [Set.mem_setOf_eq]
+    rcases por with l | r
+    left
+    rw [l]
+    /-have claim : (show Set (timeline κ n × timeline κ n) from t) ⊆ sproj T := by
+      simp only
+      intro x hx
+      unfold sproj
+      simp only [Set.mem_setOf_eq]
+      left
+      exact ⟨t, tinfc, hx⟩-/
+    sorry
+    right
+    rw [r]
+    sorry
+    rcases in2 with ⟨t, tinf, Yint⟩
+    have vT := valid_timeline_imp_ffld T (Set.nonempty_of_mem tinf)
+    refine ⟨vT, ?_⟩
+    sorry
 
 /-
 !FUNC# : Theorems regarding transformations between timelines
