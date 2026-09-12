@@ -897,9 +897,47 @@ theorem valid_timeline_imp_ffld {κ : Type T} {n : ℕ} :
   simp only [Set.mem_setOf_eq] at hL
   exact hL.1
 
+theorem FLD2 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ →
+  ((ffld τ).Nonempty ↔ τ.Nonempty) := by
+  intro T vT
+  constructor
+  · intro n1
+    rcases n1 with ⟨x, hx⟩
+    unfold ffld order_set at hx
+    simp only [Set.mem_setOf_eq] at hx
+    rcases hx.2 with ⟨X, hX⟩
+    exact ⟨X, hX.1⟩
+  · intro n2
+    rcases n2 with ⟨x, hx⟩
+    unfold ffld order_set
+    simp only [Set.mem_setOf_eq, Prod.exists]
+    have claim : (x.1, x.2) ∈ T := hx
+    have triv : x.1 = x.1 ∨ x.2 = x.1 := by
+      left
+      rfl
+    have cll : ∃ a b, (a, b) ∈ T ∧ (a = x.1 ∨ b = x.1) := by
+      exact ⟨x.1, x.2, claim, triv⟩
+    exact ⟨x.1, vT, cll⟩
 
-
-
+theorem FLD3 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n))
+    (X : timeline κ n × timeline κ n),
+  valid_timeline τ → X ∈ τ → X.1 ∈ ffld τ ∧ X.2 ∈ ffld τ := by
+  intro T X vT XinT
+  unfold ffld order_set
+  simp only [Set.mem_setOf_eq, and_left_comm, and_assoc, and_self_left]
+  refine ⟨vT, ?_⟩
+  constructor
+  · use X
+    refine ⟨XinT, ?_⟩
+    left
+    rfl
+  · use X
+    refine ⟨XinT, ?_⟩
+    right
+    rfl
 
 /-
 !SP# : Theorems regarding successors and predecessors
@@ -1995,29 +2033,7 @@ theorem SP38 {κ : Type T} {n : ℕ} :
   have subb := SP37 T x xin
   exact Set.Finite.subset finffld subb
 
-theorem SP39 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
-  valid_timeline τ →
-  ((ffld τ).Nonempty ↔ τ.Nonempty) := by
-  intro T vT
-  constructor
-  · intro n1
-    rcases n1 with ⟨x, hx⟩
-    unfold ffld order_set at hx
-    simp only [Set.mem_setOf_eq] at hx
-    rcases hx.2 with ⟨X, hX⟩
-    exact ⟨X, hX.1⟩
-  · intro n2
-    rcases n2 with ⟨x, hx⟩
-    unfold ffld order_set
-    simp only [Set.mem_setOf_eq, Prod.exists]
-    have claim : (x.1, x.2) ∈ T := hx
-    have triv : x.1 = x.1 ∨ x.2 = x.1 := by
-      left
-      rfl
-    have cll : ∃ a b, (a, b) ∈ T ∧ (a = x.1 ∨ b = x.1) := by
-      exact ⟨x.1, x.2, claim, triv⟩
-    exact ⟨x.1, vT, cll⟩
+
 
 theorem SP40 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)) (x : timeline κ n),
@@ -2203,7 +2219,7 @@ theorem FL4 {κ : Type T} {n : ℕ} :
   ((valid_timeline τ) → τ.Finite → ∃ x, x ∈ firsteles τ) := by
   intro T vT finT
   have nempty := validnonempty T vT
-  have ffldnempty := (SP39 T vT).mpr nempty
+  have ffldnempty := (FLD2 T vT).mpr nempty
   rcases ffldnempty with ⟨x, hx⟩
   have finffld := SP30 T finT
   have finpreds := SP38 T x hx finffld
@@ -2373,16 +2389,64 @@ theorem ADD0 {κ : Type T} {n : ℕ} :
     push Not
     exact ⟨A, B⟩
 
-/-theorem ADD3 {κ : Type T} {n : ℕ} :
-  ∀ (τ : Set (timeline κ n × timeline κ n)),
--/
+theorem ADD1 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  τ ⊆ add τ ρ := by
+  intro T P X XinT
+  unfold add
+  simp only [Set.mem_union, Set.mem_setOf_eq]
+  left
+  left
+  exact XinT
 
-theorem ADD4 {κ : Type T} {n : ℕ} :
+theorem ADD1R {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  ρ ⊆ add τ ρ := by
+  intro T P X XinT
+  unfold add
+  simp only [Set.mem_union, Set.mem_setOf_eq]
+  right
+  exact XinT
+
+theorem ADD2 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  valid_timeline (add τ ρ) → ffld τ ⊆ ffld (add τ ρ) := by
+  intro T P vT X Xinf
+  unfold add ffld order_set
+  simp only [Set.union_def, Set.mem_setOf_eq]
+  unfold add at vT
+  refine ⟨vT, ?_⟩
+  unfold ffld order_set at Xinf
+  simp only [Set.mem_setOf_eq] at Xinf
+  rcases Xinf.2 with ⟨p, pinT, por⟩
+  use p
+  refine ⟨?_, por⟩
+  left
+  left
+  exact pinT
+
+theorem ADD2R {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  valid_timeline (add τ ρ) → ffld ρ ⊆ ffld (add τ ρ) := by
+  intro T P vT X Xinf
+  unfold add ffld order_set
+  simp only [Set.union_def, Set.mem_setOf_eq]
+  unfold add at vT
+  refine ⟨vT, ?_⟩
+  unfold ffld order_set at Xinf
+  simp only [Set.mem_setOf_eq] at Xinf
+  rcases Xinf.2 with ⟨p, pinT, por⟩
+  use p
+  refine ⟨?_, por⟩
+  right
+  exact pinT
+
+/-theorem ADD4 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   valid_timeline τ → ∃ (ρ χ : Set (timeline κ n × timeline κ n)),
   add ρ χ = τ := by
   intro T vT
-  sorry
+  sorry-/
 
 theorem ADD5 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
@@ -2396,7 +2460,7 @@ theorem ADD6 {κ : Type T} {n : ℕ} :
 
 theorem ADD7 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  add τ ρ = add ρ τ → τ = ∅ ∨ ρ = ∅ := by
+  valid_timeline (add τ ρ) → add τ ρ = add ρ τ → τ = ∅ ∨ ρ = ∅ := by
   sorry
 
 theorem ADD8 {κ : Type T} {n : ℕ} :
@@ -2407,9 +2471,84 @@ theorem ADD8 {κ : Type T} {n : ℕ} :
 
 theorem ADD9 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
-  ffld τ ∩ ffld ρ = ∅ → valid_timeline τ → valid_timeline ρ
+  valid_timeline τ → valid_timeline ρ → ffld τ ∩ ffld ρ = ∅
   → valid_timeline (add τ ρ) := by
+  intro T P vT vP emptyinter
+  have temp := ADD1 T P
+  have nemptyT := validnonempty T vT
+  have nemptya : (add T P).Nonempty := Set.Nonempty.mono temp nemptyT
+  unfold valid_timeline
+  have defadd : add T P = T ∪
+              {p | p.1 ∈ lasteles T ∧ p.2 ∈ firsteles P} ∪ P := by
+    unfold add
+    rfl
+  have claim : ∀ x ∈ ffld T, x ∈ lasteles T ∨
+                ∀ y ∈ ffld P, (x, y) ∉ (add T P) := by
+    simp only [or_iff_not_imp_left]
+    intro x xinff nl y yinff
+    have contra : (x, y) ∈ (add T P) → False := by
+      intro hyp
+      rw [defadd] at hyp
+      simp only [Set.mem_union, or_assoc] at hyp
+      rcases hyp with hyp1 | hyp2 | hyp3
+      have yinffldT : y ∈ ffld T := by
+        unfold ffld order_set
+        simp only [Set.mem_setOf_eq]
+        refine ⟨vT, ?_⟩
+        let p := (x, y)
+        have peq : p = (x, y) := rfl
+        use p
+        rw [peq]
+        simp only
+        refine ⟨hyp1, ?_⟩
+        exact Or.inr trivial
+      have false : y ∈ ffld T ∩ ffld P := by
+        simp only [Set.mem_inter_iff]
+        exact ⟨yinffldT, yinff⟩
+      rw [emptyinter] at false
+      contradiction
+      simp only [Set.mem_setOf_eq] at hyp2
+      exact nl hyp2.1
+      have xinffldP : x ∈ ffld P := by
+        unfold ffld order_set
+        simp only [Set.mem_setOf_eq]
+        refine ⟨vP, ?_⟩
+        let p := (x, y)
+        have peq : p = (x, y) := rfl
+        use p
+        rw [peq]
+        simp only
+        refine ⟨hyp3, ?_⟩
+        exact Or.symm (Or.inr trivial)
+      have sfalse : x ∈ ffld T ∩ ffld P := by
+        simp only [Set.mem_inter_iff]
+        exact ⟨xinff, xinffldP⟩
+      rw [emptyinter] at sfalse
+      contradiction
+    exact (Set.mem_compl_iff (add T P) (x, y)).mp contra
+  constructor
+  · unfold nonbranching
+    intro pa paina q qina
+    simp only [defadd, Set.mem_union, Set.mem_setOf_eq, or_assoc] at paina qina
+    have ffldb := FLD3 T
+    constructor
+    · intro feq
+      rcases paina with inT | inEnds | inP
+      rcases qina with inTq | inEndsq |inPq
+      have ffp := ffldb pa vT inT
+      have ffq := ffldb q vT inTq
+      have nonbranchT := validnonbranching T vT
+      unfold nonbranching at nonbranchT
+      exact (nonbranchT pa inT q inTq).mp feq
+      sorry
+      sorry
+      sorry
+      sorry
+    · intro seq
+      sorry
   sorry
+
+
 
 theorem ADD10 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
@@ -2591,13 +2730,13 @@ theorem SUBT7 {κ : Type T} {n : ℕ} :
   intro ⟨⟨nbT, orderT, sorderT, nemptyT⟩, ⟨nbP, orderP, sorderP, nemptyP⟩, ⟨nbS, orderS, sorderS, nemptyS⟩, nsing, subPT⟩
   unfold nonbranching at nbT nbP nbS
   unfold ordered at orderT orderP orderS
-  simp [or_iff_not_imp_left] at orderT
+  simp only [or_iff_not_imp_left] at orderT
   replace orderT := orderT nsing nemptyT
   rcases nemptyP with ⟨x, xinP⟩
   rcases nemptyS with ⟨y, yinS⟩
   have yinT := SUBT3 T P yinS
   have xinT := subPT xinP
-  have orderTx := orderT x.1 x.2 xinT
+  have orderTx := orderT x xinT
   have exclus := SUBT6 T P
   have comp := ADD0 T P subPT
   simp only [Set.ext_iff, Set.mem_inter_iff, Set.mem_union] at exclus comp
@@ -2607,7 +2746,7 @@ theorem SUBT7 {κ : Type T} {n : ℕ} :
   replace exclusy := exclusy yinS
   unfold ffld order_set
   simp only [Set.mem_setOf_eq, Set.mem_inter_iff]
-  have orderTy := orderT y.1 y.2 yinT
+  have orderTy := orderT y yinT
   let last := lasteles P
   let first := firsteles T
   sorry
@@ -2748,7 +2887,7 @@ PROJ0 :
 PROJ1 :
 PROJ2 : Generalization of PROJ1 to any projection
 -/
-theorem valid_timeline_imp_proj {κ : Type T} :
+theorem valid_timeline_imp_proj1 {κ : Type T} :
   ∀ (n k : ℕ) (τ : timeline κ (n + k + 2)) (α β : timeline κ (n + k + 1)),
   α ∈ ffld τ → β ∈ ffld τ → α ≠ β →
     (fld n k α).Nonempty → (fld n k β).Nonempty →
@@ -2775,6 +2914,18 @@ theorem valid_timeline_imp_proj {κ : Type T} :
   exact valid_timeline_imp (proj n k t) X Y proj1
   replace proj2 := proj2 s2 Y X ⟨hX, hY⟩
   exact valid_timeline_imp (proj n k t) Y X proj2
+
+theorem valid_timeline_imp_proj2 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ (n + 1) × timeline κ (n + 1))),
+  valid_timeline τ → (∀ χ ∈ ffld τ, valid_timeline χ) → valid_timeline (sproj τ) := by
+  intro T vT hX
+  have vTcopy := vT
+  unfold valid_timeline at vTcopy
+  replace vTcopy := vTcopy.2.2.2
+  have nemptyffld := (FLD2 T vT).mpr vTcopy
+  rcases nemptyffld with ⟨Y, Yinf⟩
+  sorry
+
 
 theorem PROJ1 {κ : Type T} :
   ∀ (n : ℕ)
@@ -2995,13 +3146,7 @@ theorem PROJ9 {κ : Type T} :
     rcases por with l | r
     left
     rw [l]
-    /-have claim : (show Set (timeline κ n × timeline κ n) from t) ⊆ sproj T := by
-      simp only
-      intro x hx
-      unfold sproj
-      simp only [Set.mem_setOf_eq]
-      left
-      exact ⟨t, tinfc, hx⟩-/
+    refine ⟨?_, ⟨Y, Yint, Yor⟩⟩
     sorry
     right
     rw [r]
