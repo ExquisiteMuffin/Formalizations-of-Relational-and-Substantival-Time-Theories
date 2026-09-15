@@ -2349,6 +2349,14 @@ theorem FL10 {κ : Type T} {n : ℕ} :
     exact xla
 
 theorem FL11 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) x,
+  x ∈ lasteles τ ↔ x ∈ firsteles (inv_timeline τ) := by
+  intro T x
+  have claim := FL10 (inv_timeline T) x
+  rw [F_INV0 T] at claim
+  exact claim.symm
+
+theorem FL12 {κ : Type T} {n : ℕ} :
   ∀ (τ : Set (timeline κ n × timeline κ n)),
   ((valid_timeline τ) → τ.Finite → ∃ x, lasteles τ = {x}) := by
   intro T vT Tfin
@@ -2362,8 +2370,39 @@ theorem FL11 {κ : Type T} {n : ℕ} :
   replace eq := eq x
   exact eq.symm
 
+theorem FL13 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) x,
+  x ∈ lasteles τ → ∀ y, y ∈ lasteles τ → x = y := by
+  intro T x xinf y yinf
+  rw [FL11 T x] at xinf
+  rw [FL11 T y] at yinf
+  exact FL8 (inv_timeline T) x xinf y yinf
 
-
+theorem FL14 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)) (x y : timeline κ n),
+  x ∈ lasteles τ → y ∈ firsteles ρ → {p | p.1 ∈ lasteles τ ∧ p.2 ∈ firsteles ρ} = {(x, y)} := by
+  intro T P x y xlas tfir
+  simp only [Set.ext_iff, Set.mem_setOf_eq]
+  intro z
+  constructor
+  · intro hp1
+    have eq1 := FL13 T x xlas z.1 hp1.1
+    have eq2 := FL8 P y tfir z.2 hp1.2
+    rw [eq1, eq2]
+    have eqz : z = (z.1, z.2) := by
+      simp only [Prod.mk.eta]
+    rw [eqz.symm]
+    exact Set.mem_singleton z
+  · intro hp2
+    simp only [Set.mem_singleton_iff] at hp2
+    have eq1 : z.1 = x := by
+      subst hp2
+      rfl
+    have eq2 : z.2 = y := by
+      subst hp2
+      rfl
+    rw [eq1, eq2]
+    exact ⟨xlas, tfir⟩
 
 /-
 !ADD# : Theorems regarding the addition of timelines via set unions
@@ -2540,15 +2579,33 @@ theorem ADD9 {κ : Type T} {n : ℕ} :
       have nonbranchT := validnonbranching T vT
       unfold nonbranching at nonbranchT
       exact (nonbranchT pa inT q inTq).mp feq
-      sorry
-      sorry
+      have l1 := FL3 T q.1 inEndsq.1
+      have l2 := FL2 P q.2 inEndsq.2
+      have ffld1 := FL6R T q.1 inEndsq.1
+      have ffld2 := FL6 P q.2 inEndsq.2
+      have nonb := validnonbranching T vT
+      unfold nonbranching at nonb
+      replace nonb := nonb pa inT q
+      have thm1 := (FL1 T q.1 ffld1).mp inEndsq.1
+      rw [feq.symm] at inEndsq thm1
+      have imsu : is_imm_succ pa.2 pa.1 T := by
+        unfold is_imm_succ
+        refine ⟨vT, ?_⟩
+        use pa
+      have isu := SP0 T pa.1 pa.2 imsu
+      rw [thm1] at isu
+      contradiction
+      have painffld := (FLD3 T pa vT inT).1
+      rw [feq] at painffld
+      have qinffld := (FLD3 P q vP inPq).1
+      simp only [Set.inter_def, Set.ext_iff, Set.mem_setOf_eq] at emptyinter
+      replace emptyinter := (emptyinter q.1).mp ⟨painffld, qinffld⟩
+      contradiction
       sorry
       sorry
     · intro seq
       sorry
   sorry
-
-
 
 theorem ADD10 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
@@ -2925,7 +2982,6 @@ theorem valid_timeline_imp_proj2 {κ : Type T} {n : ℕ} :
   have nemptyffld := (FLD2 T vT).mpr vTcopy
   rcases nemptyffld with ⟨Y, Yinf⟩
   sorry
-
 
 theorem PROJ1 {κ : Type T} :
   ∀ (n : ℕ)
