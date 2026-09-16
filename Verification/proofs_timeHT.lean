@@ -2511,6 +2511,211 @@ theorem ADD8 {κ : Type T} {n : ℕ} :
 theorem ADD9 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   valid_timeline τ → valid_timeline ρ → ffld τ ∩ ffld ρ = ∅
+  → ∀ p ∈ add τ ρ , ∀ q ∈ add τ ρ, p.1 = q.1 → p.2 = q.2 := by
+  intro T P vT vP emptyinter pa paina q qina feq
+  have temp := ADD1 T P
+  have nemptyT := validnonempty T vT
+  have nemptya : (add T P).Nonempty := Set.Nonempty.mono temp nemptyT
+  have defadd : add T P = T ∪
+              {p | p.1 ∈ lasteles T ∧ p.2 ∈ firsteles P} ∪ P := by
+    unfold add
+    rfl
+  simp only [defadd, Set.mem_union, Set.mem_setOf_eq, or_assoc] at paina qina
+  have ffldb := FLD3 T
+  rcases paina with inT | inEnds | inP
+  rcases qina with inTq | inEndsq |inPq
+  have ffp := ffldb pa vT inT
+  have ffq := ffldb q vT inTq
+  have nonbranchT := validnonbranching T vT
+  unfold nonbranching at nonbranchT
+  exact (nonbranchT pa inT q inTq).mp feq
+  have ffld1 := FL6R T q.1 inEndsq.1
+  have ffld2 := FL6 P q.2 inEndsq.2
+  have thm1 := (FL1 T q.1 ffld1).mp inEndsq.1
+  rw [feq.symm] at inEndsq thm1
+  have imsu : is_imm_succ pa.2 pa.1 T := by
+    unfold is_imm_succ
+    refine ⟨vT, ?_⟩
+    use pa
+  have isu := SP0 T pa.1 pa.2 imsu
+  rw [thm1] at isu
+  contradiction
+  have painffld := (FLD3 T pa vT inT).1
+  rw [feq] at painffld
+  have qinffld := (FLD3 P q vP inPq).1
+  simp only [Set.inter_def, Set.ext_iff, Set.mem_setOf_eq] at emptyinter
+  replace emptyinter := (emptyinter q.1).mp ⟨painffld, qinffld⟩
+  contradiction
+  rcases qina with inTq | inEndsq |inPq
+  have ffld1 := FL6R T pa.1 inEnds.1
+  have ffld2 := FL6 P pa.2 inEnds.2
+  have thm1 := (FL1 T pa.1 ffld1).mp inEnds.1
+  rw [feq] at inEnds thm1
+  have imsu : is_imm_succ q.2 q.1 T := by
+    unfold is_imm_succ
+    refine ⟨vT, ?_⟩
+    use q
+  have isu := SP0 T q.1 q.2 imsu
+  rw [thm1] at isu
+  contradiction
+  exact FL8 P pa.2 inEnds.2 q.2 inEndsq.2
+  have ffld1 := FL6R T pa.1 inEnds.1
+  rw [feq] at ffld1
+  have contraf := (FLD3 P q vP inPq).1
+  have mem : q.1 ∈ ffld T ∩ ffld P := by
+    simp only [Set.inter_def, Set.mem_setOf_eq]
+    exact ⟨ffld1, contraf⟩
+  rw [emptyinter] at mem
+  contradiction
+  rcases qina with inTq | inEndsq |inPq
+  have qinffld := (FLD3 T q vT inTq).1
+  rw [feq.symm] at qinffld
+  have painffld := (FLD3 P pa vP inP).1
+  simp only [Set.inter_def, Set.ext_iff, Set.mem_setOf_eq] at emptyinter
+  replace emptyinter := (emptyinter pa.1).mp ⟨qinffld, painffld⟩
+  contradiction
+  have ffld1 := FL6R T q.1 inEndsq.1
+  have ffld2 := FL6 P q.2 inEndsq.2
+  have pai := (FLD3 P pa vP inP).1
+  rw [feq] at pai
+  have mem : q.1 ∈ ffld T ∩ ffld P := by
+    simp only [Set.inter_def, Set.mem_setOf_eq]
+    exact ⟨ffld1, pai⟩
+  rw [emptyinter] at mem
+  contradiction
+  have ffa := FLD3 P pa vP inP
+  have ffq := FLD3 P q vP inPq
+  have nonbranchP := validnonbranching P vP
+  unfold nonbranching at nonbranchP
+  exact (nonbranchP pa inP q inPq).mp feq
+
+theorem ADD10 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n))
+  (p : timeline κ n × timeline κ n),
+  p ∈ add τ ρ → p ∉ {s | s.1 ∈ lasteles τ ∧ s.2 ∈ firsteles ρ} →
+  (inv_pair p) ∈ add (inv_timeline τ) (inv_timeline ρ) := by
+  intro T P p pinadd notin
+  unfold add
+  unfold add at pinadd
+  simp only [Set.mem_union, Set.mem_setOf_eq, or_assoc] at pinadd notin
+  simp only [Set.mem_union, Set.mem_setOf_eq]
+  rcases pinadd with c1 | c2 | c3
+  left
+  left
+  exact (INV0 T p).mp c1
+  contradiction
+  right
+  exact (INV0 P p).mp c3
+  --rw [(FL10 T (inv_pair p).1).symm, (FL11 P (inv_pair p).2).symm]
+
+theorem ADD11 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → valid_timeline ρ → ffld τ ∩ ffld ρ = ∅
+  → nonbranching (add τ ρ) := by
+  intro T P vT vP emptyinter
+  have inv_validT := F_INV1 T vT
+  have inv_validP := F_INV1 P vP
+  have emptyinterinv : ffld (inv_timeline T) ∩ ffld (inv_timeline P) = ∅ := by
+    rw [INV7 T vT, INV7 P vP] at emptyinter
+    exact emptyinter
+  unfold nonbranching
+  intro pa paina q qina
+  constructor
+  · exact ADD9 T P vT vP emptyinter pa paina q qina
+  · have invv := ADD9 (inv_timeline T) (inv_timeline P)
+                  (inv_validT) (inv_validP) emptyinterinv (inv_pair pa)
+    have fo : ∀ X, (X ∈ T ∨ X ∈ P) →
+                X ∉ {s | s.1 ∈ lasteles T ∧ s.2 ∈ firsteles P} := by
+      intro X inor
+      simp only [Set.mem_setOf_eq]
+      push Not
+      intro last fal
+      rcases inor with c1 | c2
+      have ims : is_imm_succ X.2 X.1 T := by
+        unfold is_imm_succ
+        refine ⟨vT, ?_⟩
+        use X
+      have emptsucc := (FL1 T X.1 (FL6R T X.1 last)).mp last
+      have iss := SP0 T X.1 X.2 ims
+      rw [emptsucc] at iss
+      contradiction
+      have fldX := FL6R T X.1 last
+      have sfldX := (FLD3 P X vP c2).1
+      simp only [Set.inter_def, Set.ext_iff, Set.mem_setOf_eq] at emptyinter
+      replace emptyinter := (emptyinter X.1).mp ⟨fldX, sfldX⟩
+      contradiction
+    have h1 := ADD10 T P pa paina
+    have h2 := ADD10 T P q qina
+    have contr : ∀ x, ¬(x ∈ ffld T ∧ x ∈ ffld P) := by
+      intro x fa
+      simp only [Set.inter_def, Set.ext_iff, Set.mem_setOf_eq] at emptyinter
+      exact (emptyinter x).mp fa
+    unfold add at paina qina
+    simp only [Set.mem_union, Set.mem_setOf_eq, or_assoc] at paina qina
+    rcases paina with c1 | c2 | c3
+    rcases qina with c11 | c12 | c13
+    replace h1 := h1 (fo pa (Or.inl c1))
+    replace h2 := h2 (fo q (Or.inl c11))
+    replace invv := invv h1 (inv_pair q) h2
+    unfold inv_pair at invv
+    simp only at invv
+    exact invv
+    intro eq
+    rw [eq.symm] at c12
+    have first := (FLD3 T pa vT c1).2
+    have second := FL6 P pa.2 c12.2
+    exact False.elim ((contr pa.2) ⟨first, second⟩)
+    replace h1 := h1 (fo pa (Or.inl c1))
+    replace h2 := h2 (fo q (Or.inr c13))
+    replace invv := invv h1 (inv_pair q) h2
+    unfold inv_pair at invv
+    simp only at invv
+    exact invv
+    rcases qina with c21 | c22 | c23
+    intro eq
+    rw [eq] at c2
+    have first := (FLD3 T q vT c21).2
+    have second := FL6 P q.2 c2.2
+    exact False.elim ((contr q.2) ⟨first, second⟩)
+    intro eq
+    exact FL13 T pa.1 c2.1 q.1 c22.1
+    intro eq
+    rw [eq] at c2
+    have first := (FL0 P q.2 (FL6 P q.2 c2.2)).mp c2.2
+    have ims : is_imm_succ q.2 q.1 P := by
+      unfold is_imm_succ
+      refine ⟨vP, ?_⟩
+      use q
+    have iss := SP4R P q.1 q.2 (SP0 P q.1 q.2 ims)
+    rw [first] at iss
+    contradiction
+    rcases qina with c31 | c32 | c33
+    replace h1 := h1 (fo pa (Or.inr c3))
+    replace h2 := h2 (fo q (Or.inl c31))
+    replace invv := invv h1 (inv_pair q) h2
+    unfold inv_pair at invv
+    simp only at invv
+    exact invv
+    intro eq
+    rw [eq.symm] at c32
+    have first := (FL0 P pa.2 (FL6 P pa.2 c32.2)).mp c32.2
+    have ims : is_imm_succ pa.2 pa.1 P := by
+      unfold is_imm_succ
+      refine ⟨vP, ?_⟩
+      use pa
+    have iss := SP4R P pa.1 pa.2 (SP0 P pa.1 pa.2 ims)
+    rw [first] at iss
+    contradiction
+    replace h1 := h1 (fo pa (Or.inr c3))
+    replace h2 := h2 (fo q (Or.inr c33))
+    replace invv := invv h1 (inv_pair q) h2
+    unfold inv_pair at invv
+    simp only at invv
+    exact invv
+
+theorem ADD12 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → valid_timeline ρ → ffld τ ∩ ffld ρ = ∅
   → valid_timeline (add τ ρ) := by
   intro T P vT vP emptyinter
   have temp := ADD1 T P
@@ -2568,46 +2773,10 @@ theorem ADD9 {κ : Type T} {n : ℕ} :
   constructor
   · unfold nonbranching
     intro pa paina q qina
-    simp only [defadd, Set.mem_union, Set.mem_setOf_eq, or_assoc] at paina qina
-    have ffldb := FLD3 T
-    constructor
-    · intro feq
-      rcases paina with inT | inEnds | inP
-      rcases qina with inTq | inEndsq |inPq
-      have ffp := ffldb pa vT inT
-      have ffq := ffldb q vT inTq
-      have nonbranchT := validnonbranching T vT
-      unfold nonbranching at nonbranchT
-      exact (nonbranchT pa inT q inTq).mp feq
-      have l1 := FL3 T q.1 inEndsq.1
-      have l2 := FL2 P q.2 inEndsq.2
-      have ffld1 := FL6R T q.1 inEndsq.1
-      have ffld2 := FL6 P q.2 inEndsq.2
-      have nonb := validnonbranching T vT
-      unfold nonbranching at nonb
-      replace nonb := nonb pa inT q
-      have thm1 := (FL1 T q.1 ffld1).mp inEndsq.1
-      rw [feq.symm] at inEndsq thm1
-      have imsu : is_imm_succ pa.2 pa.1 T := by
-        unfold is_imm_succ
-        refine ⟨vT, ?_⟩
-        use pa
-      have isu := SP0 T pa.1 pa.2 imsu
-      rw [thm1] at isu
-      contradiction
-      have painffld := (FLD3 T pa vT inT).1
-      rw [feq] at painffld
-      have qinffld := (FLD3 P q vP inPq).1
-      simp only [Set.inter_def, Set.ext_iff, Set.mem_setOf_eq] at emptyinter
-      replace emptyinter := (emptyinter q.1).mp ⟨painffld, qinffld⟩
-      contradiction
-      sorry
-      sorry
-    · intro seq
-      sorry
+    exact ADD11 T P vT vP emptyinter pa paina q qina
   sorry
 
-theorem ADD10 {κ : Type T} {n : ℕ} :
+theorem ADD13 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (lasteles τ).Nonempty → (firsteles ρ).Nonempty →
   (ffld (add τ ρ)).ncard = (ffld τ).ncard + (ffld ρ).ncard := by
@@ -2933,10 +3102,6 @@ theorem DIST1 {κ : Type T} (k n : ℕ) (A B : timeline κ (k + n)) :
   ∀ (τ : Set (timeline κ (k + n) × timeline κ (k + n))),
   tdist k n B A τ = tdist k n A B τ := by
   sorry
-
-
-
-
 
 /-
 !PROJ# : Theorems regarding the projected timelines
