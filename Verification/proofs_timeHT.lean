@@ -2716,6 +2716,76 @@ theorem ADD11 {κ : Type T} {n : ℕ} :
 theorem ADD12 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   valid_timeline τ → valid_timeline ρ → ffld τ ∩ ffld ρ = ∅
+  → ¬ single (add τ ρ) := by
+  intro T P vT vP emptyinter
+  unfold single
+  push Not
+  intro nemptya q
+  have nemptyT := validnonempty T vT
+  have nemptyP := validnonempty P vP
+  have subb1 := ADD1 T P
+  have subb2 := ADD1R T P
+  rcases nemptyT with ⟨X, Xin⟩
+  rcases nemptyP with ⟨Y, Yin⟩
+  rw [Set.subset_def] at subb1 subb2
+  replace subb1 := subb1 X Xin
+  replace subb2 := subb2 Y Yin
+  have lor : q ∈ add T P ∨ q ∉ add T P := Classical.em (q ∈ add T P)
+  rcases lor with c1 | c2
+  unfold add at c1
+  simp only [Set.mem_union, Set.mem_setOf_eq, or_assoc] at c1
+  rcases c1 with c11 | c12 | c13
+  use Y
+  left
+  refine ⟨subb2, ?_⟩
+  have neq : Y ≠ q := by
+    intro eq
+    rw [eq] at Yin
+    have ffldT := (FLD3 T q vT c11).1
+    have ffldP := (FLD3 P q vP Yin).1
+    have fy : q.1 ∈ ffld T ∩ ffld P := by
+      simp only [Set.inter_def, Set.mem_setOf_eq]
+      exact ⟨ffldT, ffldP⟩
+    rw [emptyinter] at fy
+    contradiction
+  exact neq
+  use X
+  left
+  refine ⟨subb1, ?_⟩
+  have neq : X ≠ q := by
+    intro eq
+    rw [eq.symm] at c12
+    have ffldX1 := FL6 P X.2 c12.2
+    have ffldX2 := (FLD3 T X vT Xin).2
+    have fy : X.2 ∈ ffld T ∩ ffld P := by
+      simp only [Set.inter_def, Set.mem_setOf_eq]
+      exact ⟨ffldX2, ffldX1⟩
+    rw [emptyinter] at fy
+    contradiction
+  exact neq
+  use X
+  left
+  refine ⟨subb1, ?_⟩
+  have neq : X ≠ q := by
+    intro eq
+    rw [eq] at Xin
+    have ffldT := (FLD3 P q vP c13).1
+    have ffldP := (FLD3 T q vT Xin).1
+    have fy : q.1 ∈ ffld T ∩ ffld P := by
+      simp only [Set.inter_def, Set.mem_setOf_eq]
+      exact ⟨ffldP, ffldT⟩
+    rw [emptyinter] at fy
+    contradiction
+  exact neq
+  use q
+  right
+  refine ⟨c2, ?_⟩
+  tauto
+
+
+theorem ADD13 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → valid_timeline ρ → ffld τ ∩ ffld ρ = ∅
   → valid_timeline (add τ ρ) := by
   intro T P vT vP emptyinter
   have temp := ADD1 T P
@@ -2770,13 +2840,22 @@ theorem ADD12 {κ : Type T} {n : ℕ} :
       rw [emptyinter] at sfalse
       contradiction
     exact (Set.mem_compl_iff (add T P) (x, y)).mp contra
-  constructor
-  · unfold nonbranching
-    intro pa paina q qina
-    exact ADD11 T P vT vP emptyinter pa paina q qina
+  refine ⟨?_, ?_, ?_, nemptya⟩
+  unfold nonbranching
+  intro pa paina q qina
+  exact ADD11 T P vT vP emptyinter pa paina q qina
+  unfold ordered
+  right
+  intro nemptyacopy p pinad
+  unfold add at pinad
+  simp only [Set.mem_union, Set.mem_setOf_eq, or_assoc] at pinad
+  rcases pinad with c1 | c2 | c3
+  sorry
+  sorry
+  sorry
   sorry
 
-theorem ADD13 {κ : Type T} {n : ℕ} :
+theorem ADD14 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (lasteles τ).Nonempty → (firsteles ρ).Nonempty →
   (ffld (add τ ρ)).ncard = (ffld τ).ncard + (ffld ρ).ncard := by
