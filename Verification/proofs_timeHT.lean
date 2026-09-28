@@ -73,6 +73,29 @@ theorem validnonempty {κ : Type T} {n : ℕ} :
   intro T ⟨A, B, C, D⟩
   exact D
 
+theorem validordered {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ordered τ := by
+  intro T ⟨A, B, C, D⟩
+  exact B
+
+theorem validnoneq {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → ∀ p ∈ τ, p.1 ≠ p.2 := by
+  intro T vT p pinT eq
+  have isp1p2 : is_imm_succ p.2 p.1 T := by
+    unfold is_imm_succ
+    refine ⟨vT, ?_⟩
+    use p
+  have claim : p.2 ∈ succs p.1 T := by
+    unfold succs is_succ
+    simp only [gt_iff_lt, Set.mem_setOf_eq]
+    refine ⟨1, ?_, ?_⟩
+    omega
+    exact isp1p2
+  rw [eq] at claim
+  exact (irreflexivity n T p.2) claim
+
 
 
 
@@ -2404,6 +2427,63 @@ theorem FL14 {κ : Type T} {n : ℕ} :
     rw [eq1, eq2]
     exact ⟨xlas, tfir⟩
 
+theorem FL15 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (p : timeline κ n × timeline κ n),
+  single τ → valid_timeline τ → p ∈ τ → p.1 ∈ firsteles τ := by
+  intro T p singT vT pinT
+  unfold firsteles
+  simp only [Set.mem_setOf_eq]
+  refine ⟨(FLD3 T p vT pinT).1, ?_⟩
+  intro q qinT
+  unfold single at singT
+  replace singT := singT.2
+  rcases singT with ⟨r, hr⟩
+  have hrc := hr
+  replace hr := (hr p).mp pinT
+  replace hrc := (hrc q).mp qinT
+  rw [hr.symm] at hrc
+  have val := (validnoneq T vT p pinT).symm
+  nth_rw 1 [hrc.symm] at val
+  exact val
+
+theorem FL16 {κ : Type T} {n : ℕ} :
+  ∀ (τ : Set (timeline κ n × timeline κ n)) (p : timeline κ n × timeline κ n),
+  single τ → valid_timeline τ → p ∈ τ → p.2 ∈ lasteles τ := by
+  intro T p singT vT pinT
+  have singinv : single (inv_timeline T) := by
+    unfold single
+    refine ⟨⟨inv_pair p, (INV0 T p).mp pinT⟩, ?_⟩
+    have ij := (INV0 T p).mp pinT
+    use (inv_pair p)
+    intro q
+    have temp := INV0 T (inv_pair q)
+    rw [INV1 q] at temp
+    constructor
+    · intro hp1
+      replace temp := temp.mpr hp1
+      unfold single at singT
+      replace singT := singT.2
+      rcases singT with ⟨h, hh⟩
+      have hhc := hh
+      replace hh := (hh (inv_pair q)).mp temp
+      replace hhc := (hhc p).mp pinT
+      rw [hh.symm] at hhc
+      have eqr := congr_arg (inv_pair ·) hhc
+      rw [INV1 q] at eqr
+      exact eqr.symm
+    · intro hp2
+      rw [hp2, (INV0 T p).symm]
+      exact pinT
+  have claim := FL15 (inv_timeline T) (inv_pair p) singinv (F_INV1 T vT)
+                        ((INV0 T p).mp pinT)
+  unfold inv_pair at claim
+  simp only at claim
+  exact (FL11 T p.2).mpr claim
+
+
+
+
+
 /-
 !ADD# : Theorems regarding the addition of timelines via set unions
 -/
@@ -2782,8 +2862,18 @@ theorem ADD12 {κ : Type T} {n : ℕ} :
   refine ⟨c2, ?_⟩
   tauto
 
-
 theorem ADD13 {κ : Type T} {n : ℕ} :
+  ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
+  valid_timeline τ → valid_timeline ρ → ∀ x y, x ∈ lasteles τ → y ∈ firsteles ρ
+  → (x, y) ∈ add τ ρ := by
+  intro T P vT vP x y lastx firsty
+  unfold add
+  simp only [Set.mem_union, Set.mem_setOf_eq]
+  left
+  right
+  exact ⟨lastx, firsty⟩
+
+theorem ADD14 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   valid_timeline τ → valid_timeline ρ → ffld τ ∩ ffld ρ = ∅
   → valid_timeline (add τ ρ) := by
@@ -2850,12 +2940,21 @@ theorem ADD13 {κ : Type T} {n : ℕ} :
   unfold add at pinad
   simp only [Set.mem_union, Set.mem_setOf_eq, or_assoc] at pinad
   rcases pinad with c1 | c2 | c3
+  have ord := validordered T vT
+  unfold ordered at ord
+  rcases ord with c11 | c12
+  have lastp := FL16 T p c11 vT c1
+  replace c11 := c11.2
+  rcases c11 with ⟨R, hR⟩
+  have noneqq := validnoneq T vT p c1
+  have htemp := fun (y : timeline κ n) => ADD13 T P vT vP p.2 y lastp
+  sorry
   sorry
   sorry
   sorry
   sorry
 
-theorem ADD14 {κ : Type T} {n : ℕ} :
+theorem ADD15 {κ : Type T} {n : ℕ} :
   ∀ (τ ρ : Set (timeline κ n × timeline κ n)),
   (lasteles τ).Nonempty → (firsteles ρ).Nonempty →
   (ffld (add τ ρ)).ncard = (ffld τ).ncard + (ffld ρ).ncard := by
