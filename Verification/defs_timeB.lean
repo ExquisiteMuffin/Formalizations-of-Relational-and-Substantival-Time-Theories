@@ -14,6 +14,12 @@ open HofT
 
 universe T
 
+/-(X, 0, Y), and we have three projections, proj1 : (X, Y, 0) → (X, Y)
+(X, 0, Y) → (X, Y), and (0, X, Y) → (X, Y).
+We will only handle finite extensions for  the first paper.
+Maybe later we can handle infinite extensions, but that would require substantive
+revision of HT in order to get it all working.-/
+
 /-def ext_pair {κ : Type T} {n : ℕ} (τ : (timeline κ n × timeline κ n)) :
     (timeline κ n × timeline κ n × timeline κ n)
   :=
